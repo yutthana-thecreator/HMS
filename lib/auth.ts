@@ -71,7 +71,7 @@ export async function requireUser() {
 // อีเมลเจ้าของแพลตฟอร์ม (เข้า /admin ได้) — กำหนดใน ENV: SUPER_ADMIN_EMAILS="a@x.com,b@y.com"
 export function isSuperAdmin(email?: string | null): boolean {
   if (!email) return false;
-  const list = (process.env.SUPER_ADMIN_EMAILS ?? "owner@example.com")
+  const list = (process.env.SUPER_ADMIN_EMAILS ?? "")
     .split(",")
     .map((e) => e.trim().toLowerCase())
     .filter(Boolean);
