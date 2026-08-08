@@ -1,0 +1,22 @@
+# dependencies
+/node_modules
+
+# next.js
+/.next
+/out
+next-env.d.ts
+
+# prisma / sqlite
+/prisma/dev.db
+/prisma/dev.db-journal
+*.db
+*.db-journal
+
+# env (ห้าม commit ความลับ — ตั้งค่าจริงใน Vercel dashboard)
+.env
+.env*.local
+!.env.example
+
+# misc
+.DS_Store
+*.log

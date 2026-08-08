@@ -1,0 +1,192 @@
+// Hotel Management System — Prisma schema (MVP)
+// DB: SQLite (dev). สลับเป็น PostgreSQL ได้โดยเปลี่ยน provider เป็น "postgresql"
+// หมายเหตุ: วันที่ใน availability / reservation ใช้ String รูปแบบ "YYYY-MM-DD"
+//           เพื่อเทียบช่วงวันแบบ lexicographic ได้ตรง (เลี่ยงปัญหา timezone)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL") // Supabase transaction pooler (port 6543) — query ตอนรันจริง
+  directUrl = env("DIRECT_URL")   // Supabase session pooler (port 5432) — migration / db push
+}
+
+// ---------- กลุ่ม A: โครงสร้างที่พัก ----------
+model Organization {
+  id         String     @id @default(cuid())
+  name       String
+  // ---- Subscription / billing (แพ็กเกจ Flat: starter | pro | enterprise) ----
+  plan                 String    @default("starter")
+  planStatus           String    @default("trialing") // trialing | active | past_due | canceled
+  trialEndsAt          DateTime?
+  stripeCustomerId     String?   @unique
+  stripeSubscriptionId String?   @unique
+  createdAt  DateTime   @default(now())
+  properties Property[]
+  users      AppUser[]
+}
+
+model Property {
+  id           String        @id @default(cuid())
+  orgId        String
+  name         String
+  timezone     String        @default("Asia/Bangkok")
+  currency     String        @default("THB")
+  checkinTime  String        @default("14:00")
+  checkoutTime String        @default("12:00")
+  createdAt    DateTime      @default(now())
+  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  roomTypes    RoomType[]
+  rooms        Room[]
+  channels     Channel[]
+  reservations Reservation[]
+  availability Availability[]
+}
+
+model RoomType {
+  id               String            @id @default(cuid())
+  propertyId       String
+  name             String
+  code             String
+  maxOccupancy     Int               @default(2)
+  basePrice        Float             @default(0)
+  createdAt        DateTime          @default(now())
+  property         Property          @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  rooms            Room[]
+  availability     Availability[]
+  reservationRooms ReservationRoom[]
+  channelMappings  ChannelMapping[]
+
+  @@unique([propertyId, code])
+}
+
+model Room {
+  id         String   @id @default(cuid())
+  propertyId String
+  roomTypeId String
+  number     String
+  status     String   @default("clean") // clean | occupied | dirty | cleaning | inspected | out_of_order
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  roomType   RoomType @relation(fields: [roomTypeId], references: [id], onDelete: Restrict)
+
+  @@unique([propertyId, number])
+}
+
+// ---------- กลุ่ม B: ราคา & สต็อก (หัวใจกัน overbooking) ----------
+model Availability {
+  id          String   @id @default(cuid())
+  propertyId  String
+  roomTypeId  String
+  date        String // "YYYY-MM-DD"
+  unitsTotal  Int
+  unitsSold   Int      @default(0)
+  stopSell    Boolean  @default(false)
+  price       Float    @default(0)
+  property    Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  roomType    RoomType @relation(fields: [roomTypeId], references: [id], onDelete: Cascade)
+
+  @@unique([roomTypeId, date])
+  @@index([propertyId, roomTypeId, date])
+}
+
+// ---------- กลุ่ม C: การจอง ----------
+model Guest {
+  id                   String        @id @default(cuid())
+  fullName             String
+  email                String?
+  phone                String?
+  locale               String        @default("th")
+  consentTransactional Boolean       @default(true)
+  consentMarketing     Boolean       @default(false)
+  createdAt            DateTime      @default(now())
+  reservations         Reservation[]
+}
+
+model Channel {
+  id           String           @id @default(cuid())
+  propertyId   String
+  type         String // direct | ical | channel_manager
+  name         String
+  isActive     Boolean          @default(true)
+  createdAt    DateTime         @default(now())
+  property     Property         @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  reservations Reservation[]
+  mappings     ChannelMapping[]
+}
+
+model ChannelMapping {
+  id             String   @id @default(cuid())
+  channelId      String
+  roomTypeId     String
+  externalRoomId String
+  externalRateId String?
+  channel        Channel  @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  roomType       RoomType @relation(fields: [roomTypeId], references: [id], onDelete: Cascade)
+
+  @@unique([channelId, roomTypeId])
+}
+
+model Reservation {
+  id          String            @id @default(cuid())
+  propertyId  String
+  guestId     String?
+  channelId   String?
+  code        String            @unique
+  externalRef String?
+  status      String            @default("confirmed") // pending|confirmed|checked_in|checked_out|cancelled|no_show
+  totalAmount Float             @default(0)
+  currency    String            @default("THB")
+  notes       String?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  property    Property          @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  guest       Guest?            @relation(fields: [guestId], references: [id], onDelete: SetNull)
+  channel     Channel?          @relation(fields: [channelId], references: [id], onDelete: SetNull)
+  rooms       ReservationRoom[]
+
+  // idempotency: กัน booking ซ้ำจาก OTA/webhook (NULL ถือว่าไม่ซ้ำใน SQLite)
+  @@unique([channelId, externalRef])
+}
+
+model ReservationRoom {
+  id            String      @id @default(cuid())
+  reservationId String
+  roomTypeId    String
+  roomId        String?
+  checkinDate   String // "YYYY-MM-DD"
+  checkoutDate  String // "YYYY-MM-DD"
+  guestsCount   Int         @default(1)
+  priceTotal    Float       @default(0)
+  reservation   Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  roomType      RoomType    @relation(fields: [roomTypeId], references: [id], onDelete: Restrict)
+
+  @@index([roomTypeId, checkinDate, checkoutDate])
+}
+
+// ---------- ผู้ใช้งาน ----------
+model AppUser {
+  id           String       @id @default(cuid())
+  orgId        String
+  name         String?
+  email        String       @unique
+  passwordHash String
+  role         String       @default("front_desk") // owner|manager|front_desk|housekeeping
+  isActive     Boolean      @default(true)
+  createdAt    DateTime     @default(now())
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  sessions     Session[]
+}
+
+// เซสชันล็อกอิน (opaque token เก็บใน DB + httpOnly cookie)
+model Session {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      AppUser  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
