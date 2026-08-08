@@ -35,7 +35,7 @@ export async function createSession(userId: string): Promise<void> {
     httpOnly: true,
     sameSite: "lax",
     path: "/",
-    expires: expiresAt,
+    // ไม่ตั้ง expires → เป็น session cookie: หมดอายุเมื่อปิด browser (ต้อง login ใหม่)
     secure: process.env.NODE_ENV === "production",
   });
 }
