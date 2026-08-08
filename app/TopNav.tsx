@@ -16,15 +16,18 @@ export default function TopNav({
   userEmail,
   planName,
   trialing,
+  showAdmin,
 }: {
   hotelName: string;
   userName: string;
   userEmail: string;
   planName: string;
   trialing: boolean;
+  showAdmin?: boolean;
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const navLinks = showAdmin ? [...links, { href: "/admin", label: "Admin" }] : links;
 
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -35,7 +38,7 @@ export default function TopNav({
   return (
     <>
       <div className="nav-links">
-        {links.map((l) => (
+        {navLinks.map((l) => (
           <Link key={l.href} href={l.href} className={pathname === l.href ? "active" : ""}>
             {l.label}
           </Link>

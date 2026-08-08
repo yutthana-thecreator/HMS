@@ -67,3 +67,10 @@ export async function requireUser() {
   if (!user) redirect("/login");
   return user;
 }
+
+// อีเมลของเจ้าของแพลตฟอร์ม (เข้าหน้า /admin ได้)
+const SUPER_ADMIN_EMAILS = ["owner@example.com", "yutthana.ch23@gmail.com"];
+
+export function isSuperAdmin(email?: string | null): boolean {
+  return !!email && SUPER_ADMIN_EMAILS.includes(email.toLowerCase());
+}
