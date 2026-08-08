@@ -68,9 +68,12 @@ export async function requireUser() {
   return user;
 }
 
-// อีเมลของเจ้าของแพลตฟอร์ม (เข้าหน้า /admin ได้)
-const SUPER_ADMIN_EMAILS = ["owner@example.com", "yutthana.ch23@gmail.com"];
-
+// อีเมลเจ้าของแพลตฟอร์ม (เข้า /admin ได้) — กำหนดใน ENV: SUPER_ADMIN_EMAILS="a@x.com,b@y.com"
 export function isSuperAdmin(email?: string | null): boolean {
-  return !!email && SUPER_ADMIN_EMAILS.includes(email.toLowerCase());
+  if (!email) return false;
+  const list = (process.env.SUPER_ADMIN_EMAILS ?? "owner@example.com")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+  return list.includes(email.toLowerCase());
 }
