@@ -47,7 +47,18 @@ export default async function AdminPage() {
           <h1 className="page-title">Admin · แพลตฟอร์ม</h1>
           <p className="page-sub">ภาพรวมทุกโรงแรมในระบบ</p>
         </div>
-        <AdminLogout />
+        <div style={{ display: "flex", gap: 8 }}>
+          <a
+            className="btn btn-ghost"
+            href="https://claude.ai/code/artifact/24a02e5a-3f09-4c9b-a51f-4b44f93a8c84"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ color: "var(--primary)", borderColor: "var(--border)" }}
+          >
+            📊 Flowchart ระบบ
+          </a>
+          <AdminLogout />
+        </div>
       </div>
 
       <div className="stat-grid">
