@@ -3,7 +3,10 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { nightCount } from "@/lib/dates";
+import { paymentStatus, PAYMENT_METHODS } from "@/lib/payments";
 import CancelButton from "../CancelButton";
+import PaymentForm from "./PaymentForm";
+import DeletePaymentButton from "./DeletePaymentButton";
 
 export const dynamic = "force-dynamic";
 
@@ -35,12 +38,20 @@ export default async function ReservationDetailPage({ params }: { params: Promis
 
   const r = await prisma.reservation.findFirst({
     where: { id, property: { orgId: user.orgId } },
-    include: { guest: true, channel: true, rooms: { include: { roomType: true } } },
+    include: {
+      guest: true,
+      channel: true,
+      rooms: { include: { roomType: true } },
+      payments: { orderBy: { createdAt: "desc" } },
+    },
   });
   if (!r) notFound();
 
   const room = r.rooms[0];
   const nights = room ? nightCount(room.checkinDate, room.checkoutDate) : 0;
+  const paid = r.payments.reduce((s, p) => s + p.amount, 0);
+  const remaining = Math.max(0, r.totalAmount - paid);
+  const payStatus = paymentStatus(r.totalAmount, paid);
 
   return (
     <main className="container">
@@ -83,6 +94,52 @@ export default async function ReservationDetailPage({ params }: { params: Promis
             <Row label="สร้างเมื่อ" value={<span className="mono">{r.createdAt.toISOString().slice(0, 16).replace("T", " ")}</span>} />
             {r.notes && <Row label="หมายเหตุ" value={r.notes} />}
           </div>
+        </div>
+      </div>
+
+      <div className="card" style={{ marginTop: 20 }}>
+        <div className="card-head">
+          <h2>การชำระเงิน</h2>
+          <span className={`badge ${payStatus.key === "paid" ? "confirmed" : payStatus.key === "partial" ? "pending" : "cancelled"}`}>{payStatus.label}</span>
+        </div>
+        <div className="card-body">
+          <div className="stat-grid" style={{ marginBottom: 16 }}>
+            <div>
+              <div className="muted" style={{ fontSize: 13 }}>ยอดรวม</div>
+              <div style={{ fontWeight: 700, fontSize: 20 }}>฿{money(r.totalAmount)}</div>
+            </div>
+            <div>
+              <div className="muted" style={{ fontSize: 13 }}>จ่ายแล้ว</div>
+              <div style={{ fontWeight: 700, fontSize: 20, color: "var(--green)" }}>฿{money(paid)}</div>
+            </div>
+            <div>
+              <div className="muted" style={{ fontSize: 13 }}>คงเหลือ</div>
+              <div style={{ fontWeight: 700, fontSize: 20, color: remaining > 0 ? "var(--red)" : "var(--green)" }}>฿{money(remaining)}</div>
+            </div>
+          </div>
+
+          {r.payments.length > 0 && (
+            <div className="cal-wrap">
+              <table className="table" style={{ marginBottom: 8 }}>
+                <thead>
+                  <tr><th>วันที่</th><th>วิธี</th><th>หมายเหตุ</th><th style={{ textAlign: "right" }}>จำนวน</th><th></th></tr>
+                </thead>
+                <tbody>
+                  {r.payments.map((p) => (
+                    <tr key={p.id}>
+                      <td className="mono">{p.createdAt.toISOString().slice(0, 10)}</td>
+                      <td>{PAYMENT_METHODS[p.method] ?? p.method}</td>
+                      <td className="muted">{p.note ?? "-"}</td>
+                      <td style={{ textAlign: "right", fontWeight: 600 }}>฿{money(p.amount)}</td>
+                      <td style={{ textAlign: "right" }}><DeletePaymentButton reservationId={r.id} paymentId={p.id} /></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {r.status !== "cancelled" && <PaymentForm reservationId={r.id} remaining={remaining} />}
         </div>
       </div>
 

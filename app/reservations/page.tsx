@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
+import { paymentStatus } from "@/lib/payments";
 import CancelButton from "./CancelButton";
 
 export const dynamic = "force-dynamic";
@@ -22,7 +23,7 @@ export default async function ReservationsPage() {
   const user = await requireUser();
   const list = await prisma.reservation.findMany({
     where: { property: { orgId: user.orgId } },
-    include: { guest: true, channel: true, rooms: { include: { roomType: true } } },
+    include: { guest: true, channel: true, rooms: { include: { roomType: true } }, payments: true },
     orderBy: { createdAt: "desc" },
     take: 100,
   });
@@ -48,6 +49,7 @@ export default async function ReservationsPage() {
                 <th>เช็คอิน → เช็คเอาต์</th>
                 <th>ช่องทาง</th>
                 <th>ยอดรวม</th>
+                <th>การชำระ</th>
                 <th>สถานะ</th>
                 <th></th>
               </tr>
@@ -55,13 +57,15 @@ export default async function ReservationsPage() {
             <tbody>
               {list.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="muted" style={{ textAlign: "center", padding: 32 }}>
+                  <td colSpan={9} className="muted" style={{ textAlign: "center", padding: 32 }}>
                     ยังไม่มีการจอง — <Link href="/book" style={{ color: "var(--primary)" }}>สร้างรายการแรก</Link>
                   </td>
                 </tr>
               )}
               {list.map((r) => {
                 const room = r.rooms[0];
+                const paid = r.payments.reduce((s, p) => s + p.amount, 0);
+                const pay = paymentStatus(r.totalAmount, paid);
                 return (
                   <tr key={r.id}>
                     <td>
@@ -78,6 +82,11 @@ export default async function ReservationsPage() {
                       {r.channel ? <span className="badge channel">{r.channel.name}</span> : <span className="muted">-</span>}
                     </td>
                     <td>฿{money(r.totalAmount)}</td>
+                    <td>
+                      <span className={`badge ${pay.key === "paid" ? "confirmed" : pay.key === "partial" ? "pending" : "cancelled"}`}>
+                        {pay.label}
+                      </span>
+                    </td>
                     <td>
                       <span className={`badge ${r.status === "cancelled" ? "cancelled" : r.status === "pending" ? "pending" : "confirmed"}`}>
                         {statusLabel[r.status] ?? r.status}

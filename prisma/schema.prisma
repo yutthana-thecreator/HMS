@@ -145,9 +145,23 @@ model Reservation {
   guest       Guest?            @relation(fields: [guestId], references: [id], onDelete: SetNull)
   channel     Channel?          @relation(fields: [channelId], references: [id], onDelete: SetNull)
   rooms       ReservationRoom[]
+  payments    Payment[]
 
   // idempotency: กัน booking ซ้ำจาก OTA/webhook (NULL ถือว่าไม่ซ้ำใน SQLite)
   @@unique([channelId, externalRef])
+}
+
+// บันทึกการชำระเงินของแขก (manual) — 1 การจองมีได้หลายรายการ (มัดจำ + จ่ายเพิ่ม)
+model Payment {
+  id            String      @id @default(cuid())
+  reservationId String
+  amount        Float
+  method        String      @default("cash") // cash | transfer | card | promptpay | other
+  note          String?
+  createdAt     DateTime    @default(now())
+  reservation   Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+
+  @@index([reservationId])
 }
 
 model ReservationRoom {
