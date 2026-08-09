@@ -64,7 +64,11 @@ export default async function ReservationsPage() {
                 const room = r.rooms[0];
                 return (
                   <tr key={r.id}>
-                    <td className="mono">{r.code}</td>
+                    <td>
+                      <Link href={`/reservations/${r.id}`} className="mono" style={{ color: "var(--primary)", fontWeight: 600 }}>
+                        {r.code}
+                      </Link>
+                    </td>
                     <td>{r.guest?.fullName ?? "-"}</td>
                     <td>{room?.roomType.name ?? "-"}</td>
                     <td className="mono">
