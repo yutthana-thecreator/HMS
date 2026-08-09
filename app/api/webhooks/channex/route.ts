@@ -10,6 +10,7 @@ export const runtime = "nodejs";
 export async function POST(req: Request) {
   const body = await req.json().catch(() => null);
   if (!body) return NextResponse.json({ ok: false }, { status: 400 });
+  console.log("[channex webhook]", JSON.stringify(body).slice(0, 2000)); // debug payload จริง
 
   // Channex อาจส่ง { event, payload:{ booking_id, property_id } } หรือ booking เต็ม
   const payload = (body.payload ?? body) as Record<string, unknown>;
