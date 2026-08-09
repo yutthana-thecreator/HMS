@@ -80,3 +80,18 @@ export async function syncOrg(orgId: string): Promise<SyncResult[]> {
   }
   return results;
 }
+
+/** sync ทุก feed ทั้งระบบ (สำหรับ cron) */
+export async function syncAll() {
+  const feeds = await prisma.icalFeed.findMany();
+  let imported = 0;
+  let cancelled = 0;
+  let conflicts = 0;
+  for (const f of feeds) {
+    const r = await syncFeed(f);
+    imported += r.imported;
+    cancelled += r.cancelled;
+    conflicts += r.conflicts;
+  }
+  return { feeds: feeds.length, imported, cancelled, conflicts };
+}
