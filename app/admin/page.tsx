@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { isAdmin } from "@/lib/auth";
 import { getPlan } from "@/lib/plans";
@@ -48,15 +49,9 @@ export default async function AdminPage() {
           <p className="page-sub">ภาพรวมทุกโรงแรมในระบบ</p>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
-          <a
-            className="btn btn-ghost"
-            href="https://claude.ai/code/artifact/24a02e5a-3f09-4c9b-a51f-4b44f93a8c84"
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ color: "var(--primary)", borderColor: "var(--border)" }}
-          >
+          <Link className="btn btn-ghost" href="/admin/flow" style={{ color: "var(--primary)", borderColor: "var(--border)" }}>
             📊 Flowchart ระบบ
-          </a>
+          </Link>
           <AdminLogout />
         </div>
       </div>
