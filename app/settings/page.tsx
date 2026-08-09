@@ -3,6 +3,7 @@ import { requireUser } from "@/lib/auth";
 import { PLANS, getPlan } from "@/lib/plans";
 import AddRoomTypeForm from "./AddRoomTypeForm";
 import PlanSelector from "./PlanSelector";
+import IcalManager from "./IcalManager";
 
 export const dynamic = "force-dynamic";
 
@@ -37,6 +38,12 @@ export default async function SettingsPage() {
     prisma.appUser.count({ where: { orgId: org.id } }),
     prisma.channel.findMany({ where: { property: { orgId: org.id } } }),
   ]);
+
+  const icalFeeds = await prisma.icalFeed.findMany({
+    where: { property: { orgId: org.id } },
+    include: { roomType: { select: { name: true } } },
+    orderBy: { createdAt: "desc" },
+  });
 
   const trialDaysLeft = org.trialEndsAt
     ? Math.max(0, Math.ceil((org.trialEndsAt.getTime() - Date.now()) / (24 * 3600 * 1000)))
@@ -135,6 +142,21 @@ export default async function SettingsPage() {
             <p className="muted" style={{ marginBottom: 16 }}>ยังไม่มีประเภทห้อง — เพิ่มด้านล่างเพื่อเริ่มรับการจอง</p>
           )}
           <AddRoomTypeForm roomsUsed={roomCount} maxRooms={plan.maxRooms} />
+        </div>
+      </div>
+
+      {/* ---- เชื่อม OTA อัตโนมัติ (iCal) ---- */}
+      <div className="card" style={{ marginBottom: 24 }}>
+        <div className="card-head"><h2>เชื่อม OTA อัตโนมัติ (iCal)</h2></div>
+        <div className="card-body">
+          {roomTypes.length === 0 ? (
+            <p className="muted">เพิ่มประเภทห้องก่อน แล้วจึงเชื่อม OTA ได้</p>
+          ) : (
+            <IcalManager
+              roomTypes={roomTypes.map((rt) => ({ id: rt.id, name: rt.name, code: rt.code }))}
+              feeds={icalFeeds.map((f) => ({ id: f.id, label: f.label, roomTypeName: f.roomType.name, url: f.url, lastResult: f.lastResult }))}
+            />
+          )}
         </div>
       </div>
 

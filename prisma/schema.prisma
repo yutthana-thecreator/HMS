@@ -43,6 +43,7 @@ model Property {
   channels     Channel[]
   reservations Reservation[]
   availability Availability[]
+  icalFeeds    IcalFeed[]
 }
 
 model RoomType {
@@ -58,6 +59,7 @@ model RoomType {
   availability     Availability[]
   reservationRooms ReservationRoom[]
   channelMappings  ChannelMapping[]
+  icalFeeds        IcalFeed[]
 
   @@unique([propertyId, code])
 }
@@ -126,6 +128,21 @@ model ChannelMapping {
   roomType       RoomType @relation(fields: [roomTypeId], references: [id], onDelete: Cascade)
 
   @@unique([channelId, roomTypeId])
+}
+
+// ลิงก์ iCal ของ OTA ต่อประเภทห้อง (import วันที่ถูกจองเข้าระบบ)
+model IcalFeed {
+  id           String    @id @default(cuid())
+  propertyId   String
+  roomTypeId   String
+  channelId    String?
+  label        String // ชื่อช่องทาง เช่น "Airbnb"
+  url          String // .ics import URL จาก OTA
+  lastSyncedAt DateTime?
+  lastResult   String?
+  createdAt    DateTime  @default(now())
+  property     Property  @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  roomType     RoomType  @relation(fields: [roomTypeId], references: [id], onDelete: Cascade)
 }
 
 model Reservation {
