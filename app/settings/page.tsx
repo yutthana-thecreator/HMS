@@ -165,7 +165,7 @@ export default async function SettingsPage() {
       <div className="card" style={{ marginBottom: 24 }}>
         <div className="card-head"><h2>Channel Manager — Channex (เรียลไทม์)</h2></div>
         <div className="card-body">
-          <ChannexPanel />
+          <ChannexPanel connected={!!property?.channexPropertyId} />
         </div>
       </div>
 

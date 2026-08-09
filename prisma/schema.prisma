@@ -36,6 +36,7 @@ model Property {
   currency     String        @default("THB")
   checkinTime  String        @default("14:00")
   checkoutTime String        @default("12:00")
+  channexPropertyId String?   // เชื่อมกับ property ใน Channel Manager
   createdAt    DateTime      @default(now())
   organization Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
   roomTypes    RoomType[]
@@ -53,6 +54,8 @@ model RoomType {
   code             String
   maxOccupancy     Int               @default(2)
   basePrice        Float             @default(0)
+  channexRoomTypeId String?          // map กับ room type ใน Channex
+  channexRatePlanId String?
   createdAt        DateTime          @default(now())
   property         Property          @relation(fields: [propertyId], references: [id], onDelete: Cascade)
   rooms            Room[]

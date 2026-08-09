@@ -46,6 +46,61 @@ export async function channexListRoomTypes(propertyId: string): Promise<{ id: st
   }));
 }
 
+/** สร้าง room type ใน Channex → คืน id */
+export async function channexCreateRoomType(
+  propertyId: string,
+  title: string,
+  countOfRooms: number,
+  occupancy: number,
+): Promise<string> {
+  const res = await fetch(`${BASE}/room_types`, {
+    method: "POST",
+    headers: headers(),
+    body: JSON.stringify({
+      room_type: {
+        property_id: propertyId,
+        title,
+        count_of_rooms: Math.max(1, countOfRooms),
+        occ_adults: occupancy,
+        occ_children: 0,
+        occ_infants: 0,
+        default_occupancy: occupancy,
+      },
+    }),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body?.errors?.title || `room_type HTTP ${res.status}`);
+  return body.data.id;
+}
+
+/** สร้าง rate plan ใน Channex → คืน id */
+export async function channexCreateRatePlan(
+  propertyId: string,
+  roomTypeId: string,
+  title: string,
+  currency: string,
+  rate: number,
+): Promise<string> {
+  const res = await fetch(`${BASE}/rate_plans`, {
+    method: "POST",
+    headers: headers(),
+    body: JSON.stringify({
+      rate_plan: {
+        property_id: propertyId,
+        room_type_id: roomTypeId,
+        title,
+        currency,
+        sell_mode: "per_room",
+        rate_mode: "manual",
+        options: [{ occupancy: 2, is_primary: true, rate: Math.round(rate) }],
+      },
+    }),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body?.errors?.title || `rate_plan HTTP ${res.status}`);
+  return body.data.id;
+}
+
 /** push จำนวนห้องว่าง (ARI) ไป Channex → กระจายไปทุก OTA */
 export async function channexUpdateAvailability(
   updates: { propertyId: string; roomTypeId: string; date: string; availability: number }[],
@@ -54,7 +109,8 @@ export async function channexUpdateAvailability(
   const values = updates.map((u) => ({
     property_id: u.propertyId,
     room_type_id: u.roomTypeId,
-    date: u.date,
+    date_from: u.date,
+    date_to: u.date,
     availability: u.availability,
   }));
   const res = await fetch(`${BASE}/availability`, {
@@ -66,4 +122,12 @@ export async function channexUpdateAvailability(
     const t = await res.text();
     throw new Error(`availability update HTTP ${res.status}: ${t.slice(0, 200)}`);
   }
+}
+
+/** ดึงรายละเอียดการจอง (สำหรับ webhook) */
+export async function channexGetBooking(bookingId: string): Promise<Record<string, unknown> | null> {
+  const res = await fetch(`${BASE}/bookings/${bookingId}`, { headers: headers() });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) return null;
+  return body.data ?? null;
 }
