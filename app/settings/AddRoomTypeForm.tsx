@@ -3,10 +3,26 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
+// ตัวเลือกประเภทห้องมาตรฐาน (ชื่อ + รหัสอัตโนมัติ)
+const ROOM_TYPES = [
+  { name: "Standard", code: "STD" },
+  { name: "Superior", code: "SUP" },
+  { name: "Deluxe", code: "DLX" },
+  { name: "Junior Suite", code: "JST" },
+  { name: "Suite", code: "STE" },
+  { name: "Family", code: "FAM" },
+  { name: "Twin", code: "TWN" },
+  { name: "Triple", code: "TRP" },
+  { name: "Studio", code: "STU" },
+  { name: "Villa", code: "VIL" },
+  { name: "Bungalow", code: "BGL" },
+  { name: "Dormitory", code: "DOM" },
+];
+
 export default function AddRoomTypeForm({ roomsUsed, maxRooms }: { roomsUsed: number; maxRooms: number }) {
   const router = useRouter();
-  const [name, setName] = useState("");
-  const [code, setCode] = useState("");
+  const [name, setName] = useState(ROOM_TYPES[0].name);
+  const [code, setCode] = useState(ROOM_TYPES[0].code);
   const [units, setUnits] = useState(1);
   const [price, setPrice] = useState(1000);
   const [busy, setBusy] = useState(false);
@@ -41,10 +57,21 @@ export default function AddRoomTypeForm({ roomsUsed, maxRooms }: { roomsUsed: nu
       <div className="row-2" style={{ marginBottom: 12 }}>
         <div>
           <label>ชื่อประเภท</label>
-          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="เช่น Deluxe" required />
+          <select
+            value={name}
+            onChange={(e) => {
+              const t = ROOM_TYPES.find((x) => x.name === e.target.value);
+              setName(e.target.value);
+              if (t) setCode(t.code);
+            }}
+          >
+            {ROOM_TYPES.map((t) => (
+              <option key={t.code} value={t.name}>{t.name}</option>
+            ))}
+          </select>
         </div>
         <div>
-          <label>รหัส (เช่น DLX)</label>
+          <label>รหัส (แก้ได้)</label>
           <input value={code} onChange={(e) => setCode(e.target.value)} placeholder="DLX" required />
         </div>
       </div>
