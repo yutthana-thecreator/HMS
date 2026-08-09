@@ -2,10 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 
 export default function SignupPage() {
-  const router = useRouter();
   const [hotelName, setHotelName] = useState("");
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -25,8 +23,8 @@ export default function SignupPage() {
     const data = await res.json();
     setBusy(false);
     if (data.ok) {
-      router.push("/settings");
-      router.refresh();
+      window.location.href = "/settings";
+      return;
     } else {
       setError(data.message);
     }
