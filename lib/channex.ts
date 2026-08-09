@@ -124,6 +124,29 @@ export async function channexUpdateAvailability(
   }
 }
 
+/** push ราคา (rate) ไป Channex ต่อ rate plan → กระจายไปทุก OTA */
+export async function channexUpdateRates(
+  updates: { propertyId: string; ratePlanId: string; date: string; rate: number }[],
+): Promise<void> {
+  if (updates.length === 0) return;
+  const values = updates.map((u) => ({
+    property_id: u.propertyId,
+    rate_plan_id: u.ratePlanId,
+    date_from: u.date,
+    date_to: u.date,
+    rate: Math.round(u.rate),
+  }));
+  const res = await fetch(`${BASE}/restrictions`, {
+    method: "POST",
+    headers: headers(),
+    body: JSON.stringify({ values }),
+  });
+  if (!res.ok) {
+    const t = await res.text();
+    throw new Error(`rate update HTTP ${res.status}: ${t.slice(0, 200)}`);
+  }
+}
+
 /** ดึงรายละเอียดการจอง (สำหรับ webhook) */
 export async function channexGetBooking(bookingId: string): Promise<Record<string, unknown> | null> {
   const res = await fetch(`${BASE}/bookings/${bookingId}`, { headers: headers() });

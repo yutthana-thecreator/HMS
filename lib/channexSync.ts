@@ -5,6 +5,7 @@ import {
   channexCreateRoomType,
   channexCreateRatePlan,
   channexUpdateAvailability,
+  channexUpdateRates,
 } from "./channex";
 import { rangeDates, todayStr } from "./dates";
 
@@ -50,24 +51,36 @@ export async function pushChannexAvailability(propertyId: string, days = 120): P
   const dates = rangeDates(todayStr(property.timezone), days);
   const avail = await prisma.availability.findMany({ where: { propertyId, date: { in: dates } } });
 
-  const updates: { propertyId: string; roomTypeId: string; date: string; availability: number }[] = [];
+  const availUpdates: { propertyId: string; roomTypeId: string; date: string; availability: number }[] = [];
+  const rateUpdates: { propertyId: string; ratePlanId: string; date: string; rate: number }[] = [];
   for (const rt of roomTypes) {
     for (const a of avail) {
       if (a.roomTypeId !== rt.id) continue;
       const free = a.stopSell ? 0 : Math.max(0, a.unitsTotal - a.unitsSold);
-      updates.push({
+      availUpdates.push({
         propertyId: property.channexPropertyId,
         roomTypeId: rt.channexRoomTypeId!,
         date: a.date,
         availability: free,
       });
+      if (rt.channexRatePlanId && a.price > 0) {
+        rateUpdates.push({
+          propertyId: property.channexPropertyId,
+          ratePlanId: rt.channexRatePlanId,
+          date: a.date,
+          rate: a.price,
+        });
+      }
     }
   }
 
-  for (let i = 0; i < updates.length; i += 200) {
-    await channexUpdateAvailability(updates.slice(i, i + 200));
+  for (let i = 0; i < availUpdates.length; i += 200) {
+    await channexUpdateAvailability(availUpdates.slice(i, i + 200));
   }
-  return updates.length;
+  for (let i = 0; i < rateUpdates.length; i += 200) {
+    await channexUpdateRates(rateUpdates.slice(i, i + 200));
+  }
+  return availUpdates.length;
 }
 
 /** push แบบไม่บล็อก (fire-and-forget) หลังจอง/ยกเลิก */
