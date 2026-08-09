@@ -35,7 +35,7 @@ export default async function ReservationDetailPage({ params }: { params: Promis
 
   const r = await prisma.reservation.findFirst({
     where: { id, property: { orgId: user.orgId } },
-    include: { guest: true, channel: true, rooms: { include: { roomType: true, room: true } } },
+    include: { guest: true, channel: true, rooms: { include: { roomType: true } } },
   });
   if (!r) notFound();
 
@@ -69,7 +69,6 @@ export default async function ReservationDetailPage({ params }: { params: Promis
           <div className="card-head"><h2>ห้องพัก</h2></div>
           <div className="card-body" style={{ paddingTop: 0 }}>
             <Row label="ประเภทห้อง" value={room?.roomType.name ?? "-"} />
-            <Row label="ห้องที่กำหนด" value={room?.room?.number ?? "ยังไม่กำหนด"} />
             <Row label="เช็คอิน" value={<span className="mono">{room?.checkinDate ?? "-"}</span>} />
             <Row label="เช็คเอาต์" value={<span className="mono">{room?.checkoutDate ?? "-"}</span>} />
             <Row label="จำนวนคืน" value={`${nights} คืน`} />
