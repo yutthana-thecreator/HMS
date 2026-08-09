@@ -8,6 +8,16 @@ export const runtime = "nodejs";
 
 // รับ webhook การจองจาก OTA (ผ่าน Channex) → สร้างการจองในระบบ + push ห้องว่างกลับ
 export async function POST(req: Request) {
+  // ตรวจ secret (ผ่าน ?secret= หรือ header x-webhook-secret)
+  const secret = process.env.CHANNEX_WEBHOOK_SECRET;
+  if (secret) {
+    const url = new URL(req.url);
+    const provided = url.searchParams.get("secret") || req.headers.get("x-webhook-secret");
+    if (provided !== secret) {
+      return NextResponse.json({ ok: false, message: "unauthorized" }, { status: 401 });
+    }
+  }
+
   const body = await req.json().catch(() => null);
   if (!body) return NextResponse.json({ ok: false }, { status: 400 });
   console.log("[channex webhook]", JSON.stringify(body).slice(0, 2000)); // debug payload จริง
