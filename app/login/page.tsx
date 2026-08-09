@@ -23,7 +23,7 @@ export default function LoginPage() {
     const data = await res.json();
     setBusy(false);
     if (data.ok) {
-      router.push("/");
+      router.push(data.admin ? "/admin" : "/");
       router.refresh();
     } else {
       setError(data.message);

@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
-import { requireUser, isSuperAdmin } from "@/lib/auth";
+import { isAdmin } from "@/lib/auth";
 import { getPlan } from "@/lib/plans";
+import AdminLogout from "./AdminLogout";
 
 export const dynamic = "force-dynamic";
 
@@ -17,8 +18,7 @@ const statusTH: Record<string, string> = {
 };
 
 export default async function AdminPage() {
-  const user = await requireUser();
-  if (!isSuperAdmin(user.email)) redirect("/");
+  if (!(await isAdmin())) redirect("/login");
 
   const orgs = await prisma.organization.findMany({
     orderBy: { createdAt: "desc" },
@@ -42,8 +42,13 @@ export default async function AdminPage() {
 
   return (
     <main className="container">
-      <h1 className="page-title">Admin · แพลตฟอร์ม</h1>
-      <p className="page-sub">ภาพรวมทุกโรงแรมในระบบ</p>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start" }}>
+        <div>
+          <h1 className="page-title">Admin · แพลตฟอร์ม</h1>
+          <p className="page-sub">ภาพรวมทุกโรงแรมในระบบ</p>
+        </div>
+        <AdminLogout />
+      </div>
 
       <div className="stat-grid">
         <div className="stat-card">

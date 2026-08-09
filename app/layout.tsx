@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import TopNav from "./TopNav";
-import { getCurrentUser, isSuperAdmin } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth";
 import { getPlan } from "@/lib/plans";
 
 export const metadata: Metadata = {
@@ -33,7 +33,6 @@ export default async function RootLayout({
                 userEmail={user.email}
                 planName={plan.name}
                 trialing={org.planStatus === "trialing"}
-                showAdmin={isSuperAdmin(user.email)}
               />
             )}
           </nav>

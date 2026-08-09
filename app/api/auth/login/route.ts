@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { verifyPassword, createSession } from "@/lib/auth";
+import { verifyPassword, createSession, verifyAdmin, setAdminCookie } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
@@ -11,6 +11,12 @@ export async function POST(req: Request) {
 
   if (!email || !password) {
     return NextResponse.json({ ok: false, message: "กรอกอีเมลและรหัสผ่าน" }, { status: 400 });
+  }
+
+  // ---- Platform admin (env-only) ----
+  if (verifyAdmin(email, password)) {
+    await setAdminCookie();
+    return NextResponse.json({ ok: true, admin: true });
   }
 
   const user = await prisma.appUser.findUnique({ where: { email } });

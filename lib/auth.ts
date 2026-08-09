@@ -4,10 +4,11 @@
 // ============================================================================
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { randomBytes, scryptSync, timingSafeEqual } from "crypto";
+import { randomBytes, scryptSync, timingSafeEqual, createHmac } from "crypto";
 import { prisma } from "./db";
 
 const COOKIE = "hms_session";
+const ADMIN_COOKIE = "hms_admin";
 const SESSION_DAYS = 30;
 
 // ---------- password ----------
@@ -45,6 +46,7 @@ export async function destroySession(): Promise<void> {
   const token = jar.get(COOKIE)?.value;
   if (token) await prisma.session.deleteMany({ where: { token } });
   jar.delete(COOKIE);
+  jar.delete(ADMIN_COOKIE);
 }
 
 /** คืน user + organization ของเซสชันปัจจุบัน (หรือ null ถ้าไม่ล็อกอิน/หมดอายุ) */
@@ -68,12 +70,40 @@ export async function requireUser() {
   return user;
 }
 
-// อีเมลเจ้าของแพลตฟอร์ม (เข้า /admin ได้) — กำหนดใน ENV: SUPER_ADMIN_EMAILS="a@x.com,b@y.com"
-export function isSuperAdmin(email?: string | null): boolean {
-  if (!email) return false;
-  const list = (process.env.SUPER_ADMIN_EMAILS ?? "")
-    .split(",")
-    .map((e) => e.trim().toLowerCase())
-    .filter(Boolean);
-  return list.includes(email.toLowerCase());
+// ================== Platform Admin (env-only, แยกจากระบบ tenant) ==================
+// กำหนดใน ENV บน Vercel: ADMIN_EMAIL, ADMIN_PASSWORD — สมัคร /signup ไม่ได้
+function adminToken(): string | null {
+  const email = process.env.ADMIN_EMAIL;
+  const pass = process.env.ADMIN_PASSWORD;
+  if (!email || !pass) return null;
+  return createHmac("sha256", pass).update(email.toLowerCase()).digest("hex");
+}
+
+/** ตรวจ username/password admin กับค่าใน env */
+export function verifyAdmin(email: string, password: string): boolean {
+  const e = process.env.ADMIN_EMAIL;
+  const p = process.env.ADMIN_PASSWORD;
+  if (!e || !p) return false;
+  return email.trim().toLowerCase() === e.toLowerCase() && password === p;
+}
+
+export async function setAdminCookie(): Promise<void> {
+  const token = adminToken();
+  if (!token) return;
+  const jar = await cookies();
+  jar.set(ADMIN_COOKIE, token, {
+    httpOnly: true,
+    sameSite: "lax",
+    path: "/",
+    secure: process.env.NODE_ENV === "production",
+  });
+}
+
+/** true ถ้า request ปัจจุบันเป็น admin (มี cookie ที่ตรงกับ env) */
+export async function isAdmin(): Promise<boolean> {
+  const token = adminToken();
+  if (!token) return false;
+  const jar = await cookies();
+  const c = jar.get(ADMIN_COOKIE)?.value;
+  return !!c && c === token;
 }
