@@ -23,7 +23,8 @@ export async function signupAction(_prev: SignupState, formData: FormData): Prom
     const org = await tx.organization.create({
       data: { name: hotelName, plan: "starter", planStatus: "trialing", trialEndsAt },
     });
-    await tx.property.create({ data: { orgId: org.id, name: hotelName } });
+    const property = await tx.property.create({ data: { orgId: org.id, name: hotelName } });
+    await tx.channel.create({ data: { propertyId: property.id, type: "direct", name: "เว็บจองตรง" } });
     return tx.appUser.create({
       data: { orgId: org.id, name: fullName || null, email, passwordHash: hashPassword(password), role: "owner" },
     });
