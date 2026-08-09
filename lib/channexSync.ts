@@ -2,12 +2,63 @@
 import { prisma } from "./db";
 import {
   channexConfigured,
+  channexCreateProperty,
   channexCreateRoomType,
   channexCreateRatePlan,
   channexUpdateAvailability,
   channexUpdateRates,
+  channexListWebhooks,
+  channexRegisterWebhook,
 } from "./channex";
 import { rangeDates, todayStr } from "./dates";
+
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://hotel-management-system-topaz-xi.vercel.app";
+
+/** Onboarding wizard: สร้าง Channex property (ถ้ายังไม่มี) + provision ห้อง + ลง webhook + push — ปุ่มเดียวจบ */
+export async function onboardChannex(orgId: string) {
+  if (!channexConfigured()) throw new Error("ระบบยังไม่ได้ตั้งค่า Channel Manager (ติดต่อผู้ดูแล)");
+  const property = await prisma.property.findFirst({ where: { orgId }, orderBy: { createdAt: "asc" } });
+  if (!property) throw new Error("ไม่พบที่พัก");
+
+  let channexPropertyId = property.channexPropertyId;
+  if (!channexPropertyId) {
+    const owner = await prisma.appUser.findFirst({ where: { orgId }, orderBy: { createdAt: "asc" } });
+    channexPropertyId = await channexCreateProperty({
+      title: property.name,
+      currency: property.currency,
+      country: "TH",
+      city: property.name,
+      timezone: property.timezone,
+      email: owner?.email || "noreply@example.com",
+    });
+    await prisma.property.update({ where: { id: property.id }, data: { channexPropertyId } });
+  }
+
+  // provision room types + rate plans ที่ยังไม่ได้ map
+  const roomTypes = await prisma.roomType.findMany({
+    where: { propertyId: property.id },
+    include: { _count: { select: { rooms: true } } },
+  });
+  let provisioned = 0;
+  for (const rt of roomTypes) {
+    if (rt.channexRoomTypeId) continue;
+    const cRt = await channexCreateRoomType(channexPropertyId, rt.name, rt._count.rooms || 1, rt.maxOccupancy);
+    const cRp = await channexCreateRatePlan(channexPropertyId, cRt, `${rt.name} Rate`, property.currency, rt.basePrice);
+    await prisma.roomType.update({ where: { id: rt.id }, data: { channexRoomTypeId: cRt, channexRatePlanId: cRp } });
+    provisioned++;
+  }
+
+  // ลง webhook รับการจอง (ถ้ายังไม่มี)
+  const secret = process.env.CHANNEX_WEBHOOK_SECRET;
+  const base = `${APP_URL}/api/webhooks/channex`;
+  const callback = secret ? `${base}?secret=${secret}` : base;
+  const hooks = await channexListWebhooks(channexPropertyId);
+  const hasHook = hooks.some((h) => h.callbackUrl.startsWith(base));
+  if (!hasHook) await channexRegisterWebhook(channexPropertyId, callback);
+
+  await pushChannexAvailability(property.id);
+  return { channexPropertyId, roomTypes: roomTypes.length, provisioned, webhookRegistered: true };
+}
 
 /** เชื่อม property เรากับ Channex + auto สร้าง room type/rate plan ที่ยังไม่ได้ map + push ห้องว่าง */
 export async function connectChannex(orgId: string, channexPropertyId: string) {

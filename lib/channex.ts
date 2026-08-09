@@ -46,6 +46,72 @@ export async function channexListRoomTypes(propertyId: string): Promise<{ id: st
   }));
 }
 
+/** สร้าง property ใน Channex → คืน id (สำหรับ onboarding อัตโนมัติ) */
+export async function channexCreateProperty(p: {
+  title: string;
+  currency: string;
+  country: string;
+  city: string;
+  timezone: string;
+  email: string;
+}): Promise<string> {
+  const res = await fetch(`${BASE}/properties`, {
+    method: "POST",
+    headers: headers(),
+    body: JSON.stringify({
+      property: {
+        title: p.title,
+        currency: p.currency,
+        country: p.country,
+        city: p.city,
+        timezone: p.timezone,
+        email: p.email,
+        property_type: "hotel",
+      },
+    }),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body?.errors?.title || `property HTTP ${res.status}`);
+  return body.data.id;
+}
+
+/** ดู webhook ที่มีอยู่ของ property */
+export async function channexListWebhooks(propertyId: string): Promise<{ id: string; callbackUrl: string }[]> {
+  const res = await fetch(`${BASE}/webhooks?filter[property_id]=${propertyId}`, { headers: headers() });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) return [];
+  return (body.data || []).map((w: { id: string; attributes?: { callback_url?: string } }) => ({
+    id: w.id,
+    callbackUrl: w.attributes?.callback_url || "",
+  }));
+}
+
+/** ลงทะเบียน webhook รับการจอง */
+export async function channexRegisterWebhook(propertyId: string, callbackUrl: string): Promise<void> {
+  const res = await fetch(`${BASE}/webhooks`, {
+    method: "POST",
+    headers: headers(),
+    body: JSON.stringify({
+      webhook: { property_id: propertyId, callback_url: callbackUrl, event_mask: "booking", is_active: true },
+    }),
+  });
+  if (!res.ok) {
+    const t = await res.text();
+    throw new Error(`webhook HTTP ${res.status}: ${t.slice(0, 150)}`);
+  }
+}
+
+/** ดู OTA channel ที่เชื่อมกับ property (นับว่ามีกี่เว็บเชื่อมแล้ว) */
+export async function channexListChannels(propertyId: string): Promise<{ id: string; title: string }[]> {
+  const res = await fetch(`${BASE}/channels?filter[property_id]=${propertyId}`, { headers: headers() });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) return [];
+  return (body.data || []).map((c: { id: string; attributes?: { title?: string; channel?: string } }) => ({
+    id: c.id,
+    title: c.attributes?.title || c.attributes?.channel || "channel",
+  }));
+}
+
 /** สร้าง room type ใน Channex → คืน id */
 export async function channexCreateRoomType(
   propertyId: string,

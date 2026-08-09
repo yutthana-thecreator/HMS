@@ -4,7 +4,7 @@ import { PLANS, getPlan } from "@/lib/plans";
 import AddRoomTypeForm from "./AddRoomTypeForm";
 import PlanSelector from "./PlanSelector";
 import IcalManager from "./IcalManager";
-import ChannexPanel from "./ChannexPanel";
+import ChannelWizard from "./ChannelWizard";
 
 export const dynamic = "force-dynamic";
 
@@ -163,9 +163,9 @@ export default async function SettingsPage() {
 
       {/* ---- Channel Manager (Channex) ---- */}
       <div className="card" style={{ marginBottom: 24 }}>
-        <div className="card-head"><h2>Channel Manager — Channex (เรียลไทม์)</h2></div>
+        <div className="card-head"><h2>Channel Manager — เชื่อม OTA (เรียลไทม์)</h2></div>
         <div className="card-body">
-          <ChannexPanel connected={!!property?.channexPropertyId} />
+          <ChannelWizard />
         </div>
       </div>
 
