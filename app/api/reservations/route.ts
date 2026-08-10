@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { createReservation, SoldOutError, InvalidDatesError } from "@/lib/reservations";
 import { pushChannexSafe } from "@/lib/channexSync";
+import { sendBookingConfirmationSafe } from "@/lib/email";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -66,6 +67,7 @@ export async function POST(req: Request) {
       externalRef: body.externalRef ? String(body.externalRef) : null,
     });
     pushChannexSafe(propertyId); // ขายปุ๊บ → อัปเดตห้องว่างไปทุก OTA
+    if (!idempotentHit) sendBookingConfirmationSafe(reservation.id); // อีเมลยืนยันให้แขก
     return NextResponse.json({ ok: true, idempotentHit, reservation });
   } catch (e) {
     if (e instanceof SoldOutError) {

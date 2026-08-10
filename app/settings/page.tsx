@@ -6,6 +6,8 @@ import PlanSelector from "./PlanSelector";
 import IcalManager from "./IcalManager";
 import ChannelWizard from "./ChannelWizard";
 import BufferInput from "./BufferInput";
+import EmailPanel from "./EmailPanel";
+import { emailConfigured } from "@/lib/email";
 
 export const dynamic = "force-dynamic";
 
@@ -165,6 +167,14 @@ export default async function SettingsPage() {
               feeds={icalFeeds.map((f) => ({ id: f.id, label: f.label, roomTypeName: f.roomType.name, url: f.url, lastResult: f.lastResult }))}
             />
           )}
+        </div>
+      </div>
+
+      {/* ---- อีเมลยืนยันจอง ---- */}
+      <div className="card" style={{ marginBottom: 24 }}>
+        <div className="card-head"><h2>อีเมลยืนยันการจอง</h2></div>
+        <div className="card-body">
+          <EmailPanel configured={emailConfigured()} />
         </div>
       </div>
 

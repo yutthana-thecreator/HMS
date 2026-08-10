@@ -7,6 +7,7 @@ import { paymentStatus, PAYMENT_METHODS } from "@/lib/payments";
 import CancelButton from "../CancelButton";
 import PaymentForm from "./PaymentForm";
 import DeletePaymentButton from "./DeletePaymentButton";
+import SendConfirmationButton from "./SendConfirmationButton";
 
 export const dynamic = "force-dynamic";
 
@@ -143,11 +144,10 @@ export default async function ReservationDetailPage({ params }: { params: Promis
         </div>
       </div>
 
-      {r.status !== "cancelled" && (
-        <div style={{ marginTop: 20 }}>
-          <CancelButton id={r.id} />
-        </div>
-      )}
+      <div style={{ marginTop: 20, display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+        {r.guest?.email && <SendConfirmationButton id={r.id} />}
+        {r.status !== "cancelled" && <CancelButton id={r.id} />}
+      </div>
     </main>
   );
 }
