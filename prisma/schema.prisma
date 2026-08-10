@@ -165,6 +165,7 @@ model Reservation {
   property    Property          @relation(fields: [propertyId], references: [id], onDelete: Cascade)
   guest       Guest?            @relation(fields: [guestId], references: [id], onDelete: SetNull)
   channel     Channel?          @relation(fields: [channelId], references: [id], onDelete: SetNull)
+  checkinReminderSent Boolean       @default(false) // กันส่งอีเมลเตือนซ้ำ
   rooms       ReservationRoom[]
   payments    Payment[]
 

@@ -1,6 +1,6 @@
 // ส่งอีเมลผ่าน Resend — ตั้ง env: RESEND_API_KEY, EMAIL_FROM
 import { prisma } from "./db";
-import { nightCount } from "./dates";
+import { nightCount, todayStr, addDays } from "./dates";
 
 const KEY = process.env.RESEND_API_KEY || "";
 const FROM = process.env.EMAIL_FROM || "onboarding@resend.dev";
@@ -111,4 +111,96 @@ export async function sendBookingConfirmation(reservationId: string): Promise<{ 
 /** ส่งแบบไม่บล็อก (fire-and-forget) หลังจอง */
 export function sendBookingConfirmationSafe(reservationId: string): void {
   sendBookingConfirmation(reservationId).catch((e) => console.error("email failed:", (e as Error).message));
+}
+
+/** HTML template เตือนก่อนเช็คอิน */
+function reminderHtml(d: {
+  hotelName: string;
+  guestName: string;
+  code: string;
+  roomTypeName: string;
+  checkin: string;
+  checkout: string;
+  checkinTime: string;
+}): string {
+  return `
+  <div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:560px;margin:0 auto;color:#1a1a1a">
+    <div style="background:#0ea5e9;color:#fff;padding:24px 28px;border-radius:12px 12px 0 0">
+      <div style="font-size:14px;opacity:.85">แล้วพบกันพรุ่งนี้ 👋</div>
+      <div style="font-size:22px;font-weight:700;margin-top:2px">${esc(d.hotelName)}</div>
+    </div>
+    <div style="border:1px solid #e5e7eb;border-top:none;padding:28px;border-radius:0 0 12px 12px">
+      <p style="margin:0 0 18px">สวัสดีคุณ <b>${esc(d.guestName)}</b>,<br/>พรุ่งนี้ถึงวันเช็คอินแล้ว 🎉 นี่คือรายละเอียดการเข้าพักของคุณ</p>
+      <table style="width:100%;border-collapse:collapse;font-size:15px">
+        <tr><td style="padding:8px 0;color:#6b7280">รหัสการจอง</td><td style="padding:8px 0;text-align:right;font-weight:700;font-family:monospace">${esc(d.code)}</td></tr>
+        <tr><td style="padding:8px 0;color:#6b7280">ประเภทห้อง</td><td style="padding:8px 0;text-align:right;font-weight:600">${esc(d.roomTypeName)}</td></tr>
+        <tr><td style="padding:8px 0;color:#6b7280">วันเช็คอิน</td><td style="padding:8px 0;text-align:right;font-weight:600">${esc(d.checkin)} (ตั้งแต่ ${esc(d.checkinTime)} น.)</td></tr>
+        <tr><td style="padding:8px 0;color:#6b7280">วันเช็คเอาต์</td><td style="padding:8px 0;text-align:right;font-weight:600">${esc(d.checkout)}</td></tr>
+      </table>
+      <p style="margin:22px 0 0;font-size:13px;color:#6b7280">เดินทางปลอดภัย · หากมาช้าหรือมีคำถาม ตอบกลับอีเมลนี้ได้เลย · แล้วพบกันที่ ${esc(d.hotelName)}</p>
+    </div>
+  </div>`;
+}
+
+/** ส่งอีเมลเตือนก่อนเช็คอินให้แขก 1 รายการ */
+export async function sendCheckinReminder(reservationId: string): Promise<{ ok: boolean; message?: string; skipped?: boolean }> {
+  const r = await prisma.reservation.findUnique({
+    where: { id: reservationId },
+    include: { guest: true, property: true, rooms: { include: { roomType: true } } },
+  });
+  if (!r) return { ok: false, message: "ไม่พบการจอง" };
+  if (!r.guest?.email) return { ok: false, skipped: true, message: "ไม่มีอีเมลลูกค้า" };
+  if (!emailConfigured()) return { ok: false, skipped: true, message: "ยังไม่ได้ตั้งค่าอีเมล" };
+
+  const room = r.rooms[0];
+  const owner = await prisma.appUser.findFirst({ where: { orgId: r.property.orgId }, orderBy: { createdAt: "asc" } });
+  const html = reminderHtml({
+    hotelName: r.property.name,
+    guestName: r.guest.fullName || "ลูกค้า",
+    code: r.code,
+    roomTypeName: room?.roomType.name || "-",
+    checkin: room?.checkinDate || "-",
+    checkout: room?.checkoutDate || "-",
+    checkinTime: r.property.checkinTime,
+  });
+
+  return sendEmail({
+    to: r.guest.email,
+    subject: `พรุ่งนี้เช็คอิน · ${r.property.name} (${r.code})`,
+    html,
+    replyTo: owner?.email,
+  });
+}
+
+/** batch: หาการจองที่เช็คอินพรุ่งนี้ + ยังไม่เตือน → ส่ง (เรียกจาก cron รายวัน) */
+export async function sendCheckinReminders(): Promise<{ sent: number; failed: number }> {
+  if (!emailConfigured()) return { sent: 0, failed: 0 };
+  const properties = await prisma.property.findMany();
+  let sent = 0;
+  let failed = 0;
+
+  for (const prop of properties) {
+    const tomorrow = addDays(todayStr(prop.timezone), 1);
+    const candidates = await prisma.reservation.findMany({
+      where: {
+        propertyId: prop.id,
+        status: { in: ["confirmed", "pending"] },
+        checkinReminderSent: false,
+        guest: { email: { not: null } },
+        rooms: { some: { checkinDate: tomorrow } },
+      },
+      select: { id: true },
+    });
+
+    for (const c of candidates) {
+      const res = await sendCheckinReminder(c.id);
+      if (res.ok) {
+        await prisma.reservation.update({ where: { id: c.id }, data: { checkinReminderSent: true } });
+        sent++;
+      } else if (!res.skipped) {
+        failed++;
+      }
+    }
+  }
+  return { sent, failed };
 }
