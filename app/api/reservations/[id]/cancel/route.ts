@@ -15,9 +15,17 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   // 🔒 ยกเลิกได้เฉพาะการจองของ org ตัวเอง
   const res = await prisma.reservation.findFirst({
     where: { id, property: { orgId: user.orgId } },
-    select: { id: true, propertyId: true },
+    select: { id: true, propertyId: true, externalRef: true },
   });
   if (!res) return NextResponse.json({ ok: false, message: "ไม่พบการจอง" }, { status: 404 });
+
+  // 🔒 กันยกเลิก OTA booking ในระบบเรา — การจองยัง LIVE บน OTA จะเกิด overbooking
+  if (res.externalRef) {
+    return NextResponse.json(
+      { ok: false, message: "การจองนี้มาจาก OTA — กรุณายกเลิกที่ OTA เท่านั้น (ระบบจะรับการยกเลิกอัตโนมัติ)" },
+      { status: 409 },
+    );
+  }
 
   try {
     const r = await cancelReservation(id);

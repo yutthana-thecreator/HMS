@@ -146,7 +146,7 @@ export default async function ReservationDetailPage({ params }: { params: Promis
 
       <div style={{ marginTop: 20, display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
         {r.guest?.email && <SendConfirmationButton id={r.id} />}
-        {r.status !== "cancelled" && <CancelButton id={r.id} />}
+        {r.status !== "cancelled" && <CancelButton id={r.id} otaLocked={!!r.externalRef} />}
       </div>
     </main>
   );
