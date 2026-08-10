@@ -3,6 +3,7 @@ import { requireUser } from "@/lib/auth";
 import { PLANS, getPlan } from "@/lib/plans";
 import AddRoomTypeForm from "./AddRoomTypeForm";
 import PlanSelector from "./PlanSelector";
+import BillingPanel from "./BillingPanel";
 import IcalManager from "./IcalManager";
 import ChannelWizard from "./ChannelWizard";
 import BufferInput from "./BufferInput";
@@ -25,10 +26,11 @@ function Meter({ used, limit }: { used: number; limit: number }) {
   );
 }
 
-export default async function SettingsPage() {
+export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ billing?: string }> }) {
   const user = await requireUser();
   const org = user.organization;
   const plan = getPlan(org.plan);
+  const sp = await searchParams;
 
   const [property, roomTypes, roomCount, propCount, staffCount, channels] = await Promise.all([
     prisma.property.findFirst({ where: { orgId: org.id }, orderBy: { createdAt: "asc" } }),
@@ -57,6 +59,11 @@ export default async function SettingsPage() {
     <main className="container">
       <h1 className="page-title">ตั้งค่า & แพ็กเกจ</h1>
       <p className="page-sub">{org.name}</p>
+
+      {sp.billing === "success" && (
+        <div className="alert success">✅ ชำระเงินสำเร็จ! แพ็กเกจกำลังเปิดใช้งาน (อัปเดตภายในไม่กี่วินาที — refresh ได้)</div>
+      )}
+      {sp.billing === "cancel" && <div className="alert error">ยกเลิกการชำระเงิน — ยังไม่มีการเปลี่ยนแปลง</div>}
 
       {/* ---- แพ็กเกจปัจจุบัน + usage ---- */}
       <div className="card" style={{ marginBottom: 24 }}>
@@ -92,6 +99,12 @@ export default async function SettingsPage() {
               <div style={{ fontWeight: 700, marginTop: 4 }}>{plan.channelManager ? "✓ ใช้ได้" : "✗ (เฉพาะ iCal)"}</div>
             </div>
           </div>
+          <div style={{ marginTop: 16, display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+            {org.currentPeriodEnd && org.planStatus === "active" && (
+              <span className="muted" style={{ fontSize: 13 }}>รอบบิลถัดไป: {org.currentPeriodEnd.toISOString().slice(0, 10)}</span>
+            )}
+            <BillingPanel hasBilling={!!org.stripeCustomerId} />
+          </div>
         </div>
       </div>
 
@@ -117,7 +130,7 @@ export default async function SettingsPage() {
             ))}
           </div>
           <p className="muted" style={{ fontSize: 13, marginTop: 14 }}>
-            💳 การชำระเงินจริงผ่าน Stripe จะเชื่อมในเฟสถัดไป — ตอนนี้เปลี่ยนแพ็กเกจได้เพื่อทดสอบ limit
+            💳 ชำระเงินปลอดภัยผ่าน Stripe (รายเดือน THB) · เปลี่ยน/ยกเลิกได้ตลอดที่ปุ่ม “จัดการการชำระเงิน”
           </p>
         </div>
       </div>

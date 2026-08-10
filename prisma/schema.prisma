@@ -23,6 +23,7 @@ model Organization {
   trialEndsAt          DateTime?
   stripeCustomerId     String?   @unique
   stripeSubscriptionId String?   @unique
+  currentPeriodEnd     DateTime? // วันหมดรอบบิลปัจจุบัน (จาก Stripe)
   createdAt  DateTime   @default(now())
   properties Property[]
   users      AppUser[]
