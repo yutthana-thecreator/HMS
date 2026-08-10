@@ -54,6 +54,7 @@ model RoomType {
   code             String
   maxOccupancy     Int               @default(2)
   basePrice        Float             @default(0)
+  otaBuffer        Int               @default(0) // กันห้องไว้ไม่ขายบน OTA (safety stock)
   channexRoomTypeId String?          // map กับ room type ใน Channex
   channexRatePlanId String?
   createdAt        DateTime          @default(now())

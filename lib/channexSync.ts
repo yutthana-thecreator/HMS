@@ -108,11 +108,13 @@ export async function pushChannexAvailability(propertyId: string, days = 120): P
     for (const a of avail) {
       if (a.roomTypeId !== rt.id) continue;
       const free = a.stopSell ? 0 : Math.max(0, a.unitsTotal - a.unitsSold);
+      // หัก buffer (safety stock) → กันห้องสุดท้ายไม่ขายบน OTA
+      const otaFree = Math.max(0, free - rt.otaBuffer);
       availUpdates.push({
         propertyId: property.channexPropertyId,
         roomTypeId: rt.channexRoomTypeId!,
         date: a.date,
-        availability: free,
+        availability: otaFree,
       });
       if (rt.channexRatePlanId && a.price > 0) {
         rateUpdates.push({

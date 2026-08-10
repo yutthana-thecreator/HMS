@@ -5,6 +5,7 @@ import AddRoomTypeForm from "./AddRoomTypeForm";
 import PlanSelector from "./PlanSelector";
 import IcalManager from "./IcalManager";
 import ChannelWizard from "./ChannelWizard";
+import BufferInput from "./BufferInput";
 
 export const dynamic = "force-dynamic";
 
@@ -126,7 +127,7 @@ export default async function SettingsPage() {
           {roomTypes.length > 0 ? (
             <table className="table" style={{ marginBottom: 20 }}>
               <thead>
-                <tr><th>ชื่อ</th><th>รหัส</th><th>จำนวนห้อง</th><th>ราคา/คืน</th></tr>
+                <tr><th>ชื่อ</th><th>รหัส</th><th>จำนวนห้อง</th><th>ราคา/คืน</th><th>กัน OTA (buffer)</th></tr>
               </thead>
               <tbody>
                 {roomTypes.map((rt) => (
@@ -135,12 +136,18 @@ export default async function SettingsPage() {
                     <td className="mono">{rt.code}</td>
                     <td>{rt._count.rooms}</td>
                     <td>฿{money(rt.basePrice)}</td>
+                    <td><BufferInput id={rt.id} value={rt.otaBuffer} /></td>
                   </tr>
                 ))}
               </tbody>
             </table>
           ) : (
             <p className="muted" style={{ marginBottom: 16 }}>ยังไม่มีประเภทห้อง — เพิ่มด้านล่างเพื่อเริ่มรับการจอง</p>
+          )}
+          {roomTypes.length > 0 && (
+            <p className="muted" style={{ fontSize: 13, marginTop: -8, marginBottom: 16 }}>
+              💡 <b>กัน OTA (buffer)</b> = กันห้องไว้ไม่ขายบน OTA (เช่น 1 = กันห้องสุดท้าย) → กัน overbooking · จองตรงยังขายได้ · 0 = ขายเต็ม
+            </p>
           )}
           <AddRoomTypeForm roomsUsed={roomCount} maxRooms={plan.maxRooms} />
         </div>
