@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import "./globals.css";
 import TopNav from "./TopNav";
 import { getCurrentUser } from "@/lib/auth";
@@ -17,6 +18,8 @@ export default async function RootLayout({
   const user = await getCurrentUser();
   const org = user?.organization;
   const plan = getPlan(org?.plan);
+  const pathname = (await headers()).get("x-pathname") ?? "";
+  const isAdminArea = pathname.startsWith("/admin");
 
   return (
     <html lang="th">
@@ -26,7 +29,7 @@ export default async function RootLayout({
             <div className="brand">
               <span className="logo">🏨</span> HMS
             </div>
-            {user && org && (
+            {user && org && !isAdminArea && (
               <TopNav
                 hotelName={org.name}
                 userName={user.name ?? ""}
@@ -35,6 +38,7 @@ export default async function RootLayout({
                 trialing={org.planStatus === "trialing"}
               />
             )}
+            {isAdminArea && <span className="muted" style={{ fontSize: 14 }}>ผู้ดูแลระบบ</span>}
           </nav>
         </header>
         {children}

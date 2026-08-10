@@ -10,7 +10,10 @@ export function middleware(req: NextRequest) {
     const url = new URL("/login", req.url);
     return NextResponse.redirect(url);
   }
-  return NextResponse.next();
+  // ส่ง pathname ให้ layout รู้ (ไว้ซ่อนเมนูโรงแรมในหน้า /admin)
+  const requestHeaders = new Headers(req.headers);
+  requestHeaders.set("x-pathname", req.nextUrl.pathname);
+  return NextResponse.next({ request: { headers: requestHeaders } });
 }
 
 export const config = {
