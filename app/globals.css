@@ -96,6 +96,33 @@ a {
   color: var(--primary-dark);
 }
 
+/* จอแคบ/มือถือ: ให้ header wrap ไม่ล้นออกนอกจอ (กันเมนูหลุดจอ → ต้องกด 2 ครั้ง) */
+@media (max-width: 720px) {
+  .nav {
+    height: auto;
+    flex-wrap: wrap;
+    padding: 10px 16px;
+    gap: 10px 12px;
+  }
+  .nav-links {
+    order: 3;
+    width: 100%;
+    margin-left: 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap;
+    gap: 6px;
+    padding-bottom: 2px;
+  }
+  .nav-links a {
+    white-space: nowrap;
+    padding: 8px 12px;
+  }
+  .org-chip {
+    margin-left: auto;
+  }
+}
+
 /* ---------- Layout ---------- */
 .container {
   max-width: 1200px;
