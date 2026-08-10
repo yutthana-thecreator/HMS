@@ -32,6 +32,7 @@ export async function createSession(userId: string): Promise<void> {
   const expiresAt = new Date(Date.now() + SESSION_DAYS * 24 * 3600 * 1000);
   await prisma.session.create({ data: { token, userId, expiresAt } });
   const jar = await cookies();
+  jar.delete(ADMIN_COOKIE); // ล็อกอินโรงแรม → เคลียร์ admin cookie อัตโนมัติ (กันสับสน)
   jar.set(COOKIE, token, {
     httpOnly: true,
     sameSite: "lax",
