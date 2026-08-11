@@ -17,7 +17,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ roomTyp
   });
 
   const ics = buildIcal({
-    calName: `${roomType.name} — HMS`,
+    calName: `${roomType.name} — OneCloudStay`,
     events: rooms.map((r) => ({
       uid: `hms-${r.id}@hms`,
       start: r.checkinDate,

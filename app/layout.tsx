@@ -6,8 +6,8 @@ import { getCurrentUser } from "@/lib/auth";
 import { getPlan } from "@/lib/plans";
 
 export const metadata: Metadata = {
-  title: "Hotel Management System",
-  description: "ระบบบริหารจัดการห้องพัก SaaS + กัน Overbooking + เชื่อม OTA",
+  title: "OneCloudStay — ระบบจัดการห้องพักบนคลาวด์",
+  description: "OneCloudStay · จัดการห้องพักง่าย สะดวก มืออาชีพ บนคลาวด์ — จอง เช็คอิน เชื่อม OTA กัน overbooking ครบในที่เดียว",
 };
 
 export default async function RootLayout({
@@ -27,7 +27,7 @@ export default async function RootLayout({
         <header className="site-header">
           <nav className="nav">
             <div className="brand">
-              <span className="logo">🏨</span> HMS
+              <span className="logo">☁️</span> OneCloudStay
             </div>
             {user && org && !isAdminArea && (
               <TopNav

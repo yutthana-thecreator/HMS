@@ -63,7 +63,7 @@ export async function createCheckoutSession(opts: {
           currency: "thb",
           unit_amount: Math.round(opts.priceTHB * 100),
           recurring: { interval: "month" },
-          product_data: { name: `HMS ${opts.planName}` },
+          product_data: { name: `OneCloudStay ${opts.planName}` },
         },
       },
     ],

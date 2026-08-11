@@ -68,7 +68,7 @@ export function buildIcal(opts: {
   const lines = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//HMS//Hotel Management System//TH",
+    "PRODID:-//OneCloudStay//OneCloudStay//TH",
     "CALSCALE:GREGORIAN",
     "METHOD:PUBLISH",
     `X-WR-CALNAME:${opts.calName}`,

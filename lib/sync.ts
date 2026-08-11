@@ -20,7 +20,7 @@ export async function syncFeed(feed: FeedRow): Promise<SyncResult> {
   let conflicts = 0;
 
   try {
-    const resp = await fetch(feed.url, { headers: { "User-Agent": "HMS-iCal-Sync" } });
+    const resp = await fetch(feed.url, { headers: { "User-Agent": "OneCloudStay-iCal-Sync" } });
     if (!resp.ok) throw new Error(`โหลดลิงก์ไม่สำเร็จ (HTTP ${resp.status})`);
     const text = await resp.text();
     const events = parseIcal(text);
