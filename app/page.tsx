@@ -75,6 +75,17 @@ export default async function DashboardPage() {
     prisma.reservation.count({ where: { propertyId: property.id, status: { not: "cancelled" } } }),
   ]);
 
+  // ---- รายได้ ----
+  const monthStart = new Date(`${today.slice(0, 7)}-01T00:00:00+07:00`);
+  const [paidMonthAgg, bookedActiveAgg, paidActiveAgg] = await Promise.all([
+    prisma.payment.aggregate({ _sum: { amount: true }, where: { reservation: { propertyId: property.id }, createdAt: { gte: monthStart } } }),
+    prisma.reservation.aggregate({ _sum: { totalAmount: true }, where: { propertyId: property.id, status: { not: "cancelled" } } }),
+    prisma.payment.aggregate({ _sum: { amount: true }, where: { reservation: { propertyId: property.id, status: { not: "cancelled" } } } }),
+  ]);
+  const revenueMonth = paidMonthAgg._sum.amount ?? 0;
+  const outstanding = Math.max(0, (bookedActiveAgg._sum.totalAmount ?? 0) - (paidActiveAgg._sum.amount ?? 0));
+  const fmt = (n: number) => new Intl.NumberFormat("th-TH", { maximumFractionDigits: 0 }).format(n);
+
   return (
     <main className="container">
       {!active && (
@@ -112,6 +123,14 @@ export default async function DashboardPage() {
             <div className="stat-card">
               <div className="label">การจองทั้งหมด</div>
               <div className="value">{activeRes}</div>
+            </div>
+            <div className="stat-card">
+              <div className="label">รายได้เดือนนี้ (ชำระแล้ว)</div>
+              <div className="value" style={{ color: "var(--green)" }}>฿{fmt(revenueMonth)}</div>
+            </div>
+            <div className="stat-card">
+              <div className="label">ค้างชำระ (ทั้งหมด)</div>
+              <div className="value" style={{ color: outstanding > 0 ? "var(--red)" : undefined }}>฿{fmt(outstanding)}</div>
             </div>
             <div className="stat-card">
               <div className="label">ห้องทั้งหมด</div>
