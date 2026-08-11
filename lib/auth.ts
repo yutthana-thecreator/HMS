@@ -64,10 +64,11 @@ export async function getCurrentUser() {
   return session.user; // { ..., organization }
 }
 
-/** บังคับล็อกอิน — ถ้าไม่มี redirect ไป /login */
+/** บังคับล็อกอิน — ถ้าไม่มี redirect ไป /login · ถ้าถูกระงับ ไป /suspended */
 export async function requireUser() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
+  if (user.organization.suspended) redirect("/suspended");
   return user;
 }
 

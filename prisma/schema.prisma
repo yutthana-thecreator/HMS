@@ -21,6 +21,7 @@ model Organization {
   plan                 String    @default("starter")
   planStatus           String    @default("trialing") // trialing | active | past_due | canceled
   trialEndsAt          DateTime?
+  suspended            Boolean   @default(false) // admin ระงับการใช้งาน
   billingCycle         String    @default("monthly") // monthly | yearly
   stripeCustomerId     String?   @unique
   stripeSubscriptionId String?   @unique

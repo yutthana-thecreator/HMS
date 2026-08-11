@@ -5,6 +5,7 @@ import { isAdmin } from "@/lib/auth";
 import { getPlan } from "@/lib/plans";
 import AdminLogout from "./AdminLogout";
 import PaymentReview from "./PaymentReview";
+import AdminOrgActions from "./AdminOrgActions";
 
 export const dynamic = "force-dynamic";
 
@@ -46,6 +47,13 @@ export default async function AdminPage() {
     where: { status: "pending" },
     include: { organization: { select: { name: true } } },
     orderBy: { createdAt: "asc" },
+  });
+
+  const paymentHistory = await prisma.paymentRequest.findMany({
+    where: { status: { in: ["confirmed", "rejected"] } },
+    include: { organization: { select: { name: true } } },
+    orderBy: { reviewedAt: "desc" },
+    take: 30,
   });
 
   return (
@@ -118,7 +126,7 @@ export default async function AdminPage() {
           <table className="table">
             <thead>
               <tr>
-                <th>โรงแรม</th><th>แพ็กเกจ</th><th>สถานะ</th><th>ห้อง</th><th>การจอง</th><th>ผู้ใช้</th><th>สมัครเมื่อ</th>
+                <th>โรงแรม</th><th>แพ็กเกจ</th><th>สถานะ</th><th>ห้อง</th><th>การจอง</th><th>ผู้ใช้</th><th>หมดอายุ</th><th>สมัครเมื่อ</th><th>จัดการ</th>
               </tr>
             </thead>
             <tbody>
@@ -127,18 +135,57 @@ export default async function AdminPage() {
                   <td><strong>{org.name}</strong></td>
                   <td>{plan.name}</td>
                   <td>
-                    <span className={`badge ${org.planStatus === "active" ? "confirmed" : org.planStatus === "trialing" ? "pending" : "cancelled"}`}>
-                      {statusTH[org.planStatus] ?? org.planStatus}
-                    </span>
+                    {org.suspended ? (
+                      <span className="badge cancelled">ระงับ</span>
+                    ) : (
+                      <span className={`badge ${org.planStatus === "active" ? "confirmed" : org.planStatus === "trialing" ? "pending" : "cancelled"}`}>
+                        {statusTH[org.planStatus] ?? org.planStatus}
+                      </span>
+                    )}
                   </td>
                   <td>{rooms}</td>
                   <td>{reservations}</td>
                   <td>{org._count.users}</td>
+                  <td className="mono">{org.currentPeriodEnd ? org.currentPeriodEnd.toISOString().slice(0, 10) : "-"}</td>
                   <td className="mono">{org.createdAt.toISOString().slice(0, 10)}</td>
+                  <td><AdminOrgActions id={org.id} plan={org.plan} suspended={org.suspended} /></td>
                 </tr>
               ))}
             </tbody>
           </table>
+        </div>
+      </div>
+
+      {/* ---- ประวัติการชำระเงิน ---- */}
+      <div className="card" style={{ marginTop: 24 }}>
+        <div className="card-head"><h2>ประวัติการชำระเงิน</h2></div>
+        <div className="cal-wrap">
+          {paymentHistory.length === 0 ? (
+            <p className="muted" style={{ padding: 20, margin: 0 }}>ยังไม่มีประวัติ</p>
+          ) : (
+            <table className="table">
+              <thead>
+                <tr><th>โรงแรม</th><th>แพ็กเกจ</th><th>รอบ</th><th>ยอด</th><th>สถานะ</th><th>ดำเนินการเมื่อ</th><th>โดย</th></tr>
+              </thead>
+              <tbody>
+                {paymentHistory.map((pr) => (
+                  <tr key={pr.id}>
+                    <td>{pr.organization.name}</td>
+                    <td>{getPlan(pr.plan).name}</td>
+                    <td>{pr.cycle === "yearly" ? "รายปี" : "รายเดือน"}</td>
+                    <td style={{ fontWeight: 600 }}>฿{money(pr.amount)}</td>
+                    <td>
+                      <span className={`badge ${pr.status === "confirmed" ? "confirmed" : "cancelled"}`}>
+                        {pr.status === "confirmed" ? "ยืนยันแล้ว" : "ปฏิเสธ"}
+                      </span>
+                    </td>
+                    <td className="mono">{pr.reviewedAt ? pr.reviewedAt.toISOString().slice(0, 16).replace("T", " ") : "-"}</td>
+                    <td className="muted" style={{ fontSize: 12 }}>{pr.reviewedBy ?? "-"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
     </main>
