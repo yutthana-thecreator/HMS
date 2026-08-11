@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-type RoomType = { id: string; name: string; code: string; basePrice: number; maxOccupancy: number };
+type RoomType = { id: string; name: string; code: string; basePrice: number; maxOccupancy: number; _count?: { rooms: number } };
 type Channel = { id: string; name: string; type: string };
 type Meta = {
   property: { id: string; name: string; currency: string } | null;
@@ -16,6 +16,31 @@ function addDaysLocal(d: string, n: number) {
   return dt.toISOString().slice(0, 10);
 }
 
+// ย่อรูปฝั่ง client ก่อนส่ง (กันไฟล์ใหญ่)
+function resizeImage(file: File, maxDim = 1000, quality = 0.7): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxDim || height > maxDim) {
+          if (width >= height) { height = Math.round((height * maxDim) / width); width = maxDim; }
+          else { width = Math.round((width * maxDim) / height); height = maxDim; }
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width; canvas.height = height;
+        canvas.getContext("2d")!.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      };
+      img.onerror = reject;
+      img.src = reader.result as string;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 export default function BookPage() {
   const [meta, setMeta] = useState<Meta | null>(null);
   const [roomTypeId, setRoomTypeId] = useState("");
@@ -25,7 +50,12 @@ export default function BookPage() {
   const [checkout, setCheckout] = useState(addDaysLocal(today, 1));
   const [guestName, setGuestName] = useState("");
   const [guestEmail, setGuestEmail] = useState("");
+  const [guestPhone, setGuestPhone] = useState("");
   const [guests, setGuests] = useState(1);
+  const [units, setUnits] = useState(1);
+  const [deposit, setDeposit] = useState("");
+  const [idCard, setIdCard] = useState("");
+  const [imgBusy, setImgBusy] = useState(false);
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<{ ok: boolean; msg: string } | null>(null);
 
@@ -65,7 +95,11 @@ export default function BookPage() {
           checkoutDate: checkout,
           guestName,
           guestEmail: guestEmail || null,
+          guestPhone: guestPhone || null,
           guestsCount: guests,
+          units,
+          depositAmount: Number(deposit) || 0,
+          idCardImage: idCard || null,
         }),
       });
       const data = await res.json();
@@ -73,10 +107,14 @@ export default function BookPage() {
         const r = data.reservation;
         setResult({
           ok: true,
-          msg: `✅ จองสำเร็จ! รหัส ${r.code} · ${r.rooms[0].roomType.name} · ฿${new Intl.NumberFormat("th-TH").format(r.totalAmount)}`,
+          msg: `✅ จองสำเร็จ! รหัส ${r.code} · ${r.rooms.length} ห้อง ${r.rooms[0].roomType.name} · ฿${new Intl.NumberFormat("th-TH").format(r.totalAmount)}`,
         });
         setGuestName("");
         setGuestEmail("");
+        setGuestPhone("");
+        setDeposit("");
+        setIdCard("");
+        setUnits(1);
       } else {
         setResult({ ok: false, msg: `❌ ${data.message}` });
       }
@@ -130,18 +168,49 @@ export default function BookPage() {
                 <input type="email" value={guestEmail} onChange={(e) => setGuestEmail(e.target.value)} placeholder="guest@email.com" />
               </div>
               <div>
-                <label>จำนวนผู้เข้าพัก</label>
+                <label>เบอร์โทร (ไม่บังคับ)</label>
+                <input type="tel" value={guestPhone} onChange={(e) => setGuestPhone(e.target.value)} placeholder="08x-xxx-xxxx" />
+              </div>
+            </div>
+
+            <div className="row-2">
+              <div>
+                <label>จำนวนห้อง{selected?._count ? ` (ทั้งหมด ${selected._count.rooms})` : ""}</label>
+                <input type="number" min={1} max={selected?._count?.rooms ?? 20} value={units} onChange={(e) => setUnits(Math.max(1, Number(e.target.value)))} />
+              </div>
+              <div>
+                <label>ผู้เข้าพัก/ห้อง</label>
                 <input type="number" min={1} max={selected?.maxOccupancy ?? 4} value={guests} onChange={(e) => setGuests(Number(e.target.value))} />
               </div>
             </div>
 
             <div>
-              <label>ช่องทางการจอง</label>
-              <select value={channelId} onChange={(e) => setChannelId(e.target.value)}>
-                {meta?.channels.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
+              <label>ค่ามัดจำ (บาท · ไม่บังคับ)</label>
+              <input type="number" min={0} value={deposit} onChange={(e) => setDeposit(e.target.value)} placeholder="เช่น 500 · เว้นว่าง = ไม่เก็บมัดจำ" />
+            </div>
+
+            <div>
+              <label>รูปบัตรประชาชน (ไม่บังคับ)</label>
+              <input
+                type="file"
+                accept="image/*"
+                capture="environment"
+                disabled={imgBusy}
+                onChange={async (e) => {
+                  const f = e.target.files?.[0];
+                  if (!f) return;
+                  setImgBusy(true);
+                  try { setIdCard(await resizeImage(f)); } catch { alert("อ่านรูปไม่สำเร็จ"); }
+                  setImgBusy(false);
+                }}
+              />
+              {imgBusy && <span className="muted" style={{ fontSize: 12 }}>กำลังประมวลผลรูป...</span>}
+              {idCard && (
+                <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 8 }}>
+                  <img src={idCard} alt="บัตรประชาชน" style={{ maxWidth: 180, borderRadius: 8, border: "1px solid var(--border)" }} />
+                  <button type="button" className="btn btn-ghost" onClick={() => setIdCard("")} style={{ fontSize: 12, padding: "4px 10px", color: "var(--red)" }}>ลบรูป</button>
+                </div>
+              )}
             </div>
 
             <button className="btn" type="submit" disabled={busy || !meta?.property}>

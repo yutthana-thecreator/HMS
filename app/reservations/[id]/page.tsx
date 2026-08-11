@@ -74,6 +74,14 @@ export default async function ReservationDetailPage({ params }: { params: Promis
             <Row label="อีเมล" value={r.guest?.email ?? "-"} />
             <Row label="โทรศัพท์" value={r.guest?.phone ?? "-"} />
             <Row label="จำนวนผู้เข้าพัก" value={room?.guestsCount ?? "-"} />
+            {r.guest?.idCardImage && (
+              <div style={{ paddingTop: 12 }}>
+                <div className="muted" style={{ marginBottom: 6 }}>บัตรประชาชน</div>
+                <a href={r.guest.idCardImage} target="_blank" rel="noopener noreferrer">
+                  <img src={r.guest.idCardImage} alt="บัตรประชาชน" style={{ maxWidth: "100%", borderRadius: 8, border: "1px solid var(--border)" }} />
+                </a>
+              </div>
+            )}
           </div>
         </div>
 
@@ -81,6 +89,7 @@ export default async function ReservationDetailPage({ params }: { params: Promis
           <div className="card-head"><h2>ห้องพัก</h2></div>
           <div className="card-body" style={{ paddingTop: 0 }}>
             <Row label="ประเภทห้อง" value={room?.roomType.name ?? "-"} />
+            <Row label="จำนวนห้อง" value={`${r.rooms.length} ห้อง`} />
             <Row label="เช็คอิน" value={<span className="mono">{room?.checkinDate ?? "-"}</span>} />
             <Row label="เช็คเอาต์" value={<span className="mono">{room?.checkoutDate ?? "-"}</span>} />
             <Row label="จำนวนคืน" value={`${nights} คืน`} />

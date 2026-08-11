@@ -63,6 +63,10 @@ export async function POST(req: Request) {
       guestEmail: body.guestEmail ? String(body.guestEmail) : null,
       guestPhone: body.guestPhone ? String(body.guestPhone) : null,
       guestsCount: body.guestsCount ? Number(body.guestsCount) : 1,
+      units: body.units ? Number(body.units) : 1,
+      depositAmount: body.depositAmount ? Number(body.depositAmount) : 0,
+      depositMethod: body.depositMethod ? String(body.depositMethod) : "cash",
+      idCardImage: typeof body.idCardImage === "string" && body.idCardImage.length < 3_000_000 ? body.idCardImage : null,
       channelId: body.channelId ? String(body.channelId) : null,
       externalRef: body.externalRef ? String(body.externalRef) : null,
     });

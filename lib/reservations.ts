@@ -14,6 +14,10 @@ export type CreateReservationInput = {
   guestEmail?: string | null;
   guestPhone?: string | null;
   guestsCount?: number;
+  units?: number; // จำนวนห้อง (จองเป็นกลุ่ม)
+  depositAmount?: number; // ค่ามัดจำที่เก็บตอนจอง → บันทึกเป็น Payment
+  depositMethod?: string;
+  idCardImage?: string | null; // base64 รูปบัตร ปชช.
   channelId?: string | null;
   externalRef?: string | null; // id ฝั่ง OTA (สำหรับ idempotency)
   notes?: string | null;
@@ -51,6 +55,7 @@ function genCode(): string {
 export async function createReservation(input: CreateReservationInput) {
   const nights = nightsBetween(input.checkinDate, input.checkoutDate);
   if (nights.length === 0) throw new InvalidDatesError();
+  const units = Math.max(1, Math.min(20, Math.floor(input.units ?? 1)));
 
   // ---- ชั้น 1: Idempotency (booking จาก OTA ที่อาจยิงซ้ำ) ----
   if (input.channelId && input.externalRef) {
@@ -66,35 +71,37 @@ export async function createReservation(input: CreateReservationInput) {
       // ---- ชั้น 2: Atomic guarded decrement ข้ามทุกคืน ----
       const affected = await tx.$executeRaw`
         UPDATE "Availability"
-        SET "unitsSold" = "unitsSold" + 1
+        SET "unitsSold" = "unitsSold" + ${units}
         WHERE "roomTypeId" = ${input.roomTypeId}
           AND "date" >= ${input.checkinDate}
           AND "date" < ${input.checkoutDate}
           AND "stopSell" = false
-          AND "unitsSold" + 1 <= "unitsTotal"
+          AND "unitsSold" + ${units} <= "unitsTotal"
       `;
 
-      // ---- ชั้น 3: ถ้าไม่ครบทุกคืน → rollback ----
+      // ---- ชั้น 3: ถ้าไม่ครบทุกคืน (ห้องไม่พอ) → rollback ----
       if (affected !== nights.length) {
-        throw new SoldOutError();
+        throw new SoldOutError(units > 1 ? `ห้องว่างไม่พอ ${units} ห้องในช่วงที่เลือก` : undefined);
       }
 
-      // ราคารวม = ผลรวมราคาต่อคืน
+      // ราคาต่อห้อง = ผลรวมราคาต่อคืน · ราคารวม = × จำนวนห้อง
       const rows = await tx.availability.findMany({
         where: { roomTypeId: input.roomTypeId, date: { in: nights } },
         select: { price: true },
       });
-      const total = rows.reduce((sum, r) => sum + r.price, 0);
+      const perRoom = rows.reduce((sum, r) => sum + r.price, 0);
+      const total = perRoom * units;
 
       const guest = await tx.guest.create({
         data: {
           fullName: input.guestName,
           email: input.guestEmail ?? null,
           phone: input.guestPhone ?? null,
+          idCardImage: input.idCardImage ?? null,
         },
       });
 
-      return tx.reservation.create({
+      const created = await tx.reservation.create({
         data: {
           propertyId: input.propertyId,
           guestId: guest.id,
@@ -105,17 +112,27 @@ export async function createReservation(input: CreateReservationInput) {
           totalAmount: total,
           notes: input.notes ?? null,
           rooms: {
-            create: {
+            create: Array.from({ length: units }, () => ({
               roomTypeId: input.roomTypeId,
               checkinDate: input.checkinDate,
               checkoutDate: input.checkoutDate,
               guestsCount: input.guestsCount ?? 1,
-              priceTotal: total,
-            },
+              priceTotal: perRoom,
+            })),
           },
         },
         include: { rooms: { include: { roomType: true } }, guest: true, channel: true },
       });
+
+      // ค่ามัดจำ (ถ้าเก็บตอนจอง) → บันทึกเป็น Payment
+      const deposit = Math.max(0, Math.min(total, Number(input.depositAmount) || 0));
+      if (deposit > 0) {
+        await tx.payment.create({
+          data: { reservationId: created.id, amount: deposit, method: input.depositMethod ?? "cash", note: "ค่ามัดจำ (ตอนจอง)" },
+        });
+      }
+
+      return created;
     },
     { maxWait: 20000, timeout: 30000 },
   );

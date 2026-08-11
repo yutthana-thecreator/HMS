@@ -127,6 +127,7 @@ model Guest {
   fullName             String
   email                String?
   phone                String?
+  idCardImage          String?       // รูปบัตร ปชช. (base64 data URL)
   locale               String        @default("th")
   consentTransactional Boolean       @default(true)
   consentMarketing     Boolean       @default(false)
