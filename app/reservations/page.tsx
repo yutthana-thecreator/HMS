@@ -93,7 +93,7 @@ export default async function ReservationsPage() {
                       </span>
                     </td>
                     <td style={{ textAlign: "right" }}>
-                      {r.status !== "cancelled" && <CancelButton id={r.id} otaLocked={!!r.externalRef} />}
+                      {r.status !== "cancelled" && <CancelButton id={r.id} otaLocked={!!r.externalRef} paidAmount={paid} />}
                     </td>
                   </tr>
                 );

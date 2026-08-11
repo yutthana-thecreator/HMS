@@ -4,6 +4,7 @@ export const PAYMENT_METHODS: Record<string, string> = {
   card: "บัตรเครดิต",
   promptpay: "PromptPay",
   other: "อื่นๆ",
+  refund: "คืนเงิน",
 };
 
 export function paymentStatus(total: number, paid: number): { key: string; label: string } {

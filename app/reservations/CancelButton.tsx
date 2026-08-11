@@ -3,33 +3,42 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-export default function CancelButton({ id, otaLocked = false }: { id: string; otaLocked?: boolean }) {
+export default function CancelButton({ id, otaLocked = false, paidAmount = 0 }: { id: string; otaLocked?: boolean; paidAmount?: number }) {
   const [busy, setBusy] = useState(false);
   const router = useRouter();
 
   // การจองจาก OTA → ห้ามยกเลิกในระบบเรา (เสี่ยง overbooking) ต้องยกเลิกที่ OTA
   if (otaLocked) {
     return (
-      <span
-        className="muted"
-        style={{ fontSize: 13, whiteSpace: "nowrap" }}
-        title="การจองนี้มาจาก OTA — ต้องยกเลิกที่ OTA เท่านั้น มิฉะนั้นเสี่ยง overbooking"
-      >
+      <span className="muted" style={{ fontSize: 13, whiteSpace: "nowrap" }} title="การจองนี้มาจาก OTA — ต้องยกเลิกที่ OTA เท่านั้น">
         🔒 ยกเลิกที่ OTA
       </span>
     );
   }
 
   async function cancel() {
-    if (!confirm("ยืนยันยกเลิกการจองนี้? ระบบจะคืนห้องกลับเข้าสต็อก")) return;
+    let refund = 0;
+    if (paidAmount > 0) {
+      const input = prompt(
+        `ลูกค้าจ่ายมาแล้ว ฿${paidAmount.toLocaleString("th-TH")}\n\nคืนเงินเท่าไหร่? (ใส่ 0 = ไม่คืน/ริบมัดจำ)`,
+        String(paidAmount),
+      );
+      if (input === null) return;
+      refund = Math.max(0, Math.min(paidAmount, Number(input) || 0));
+      if (!confirm(`ยกเลิกการจอง${refund > 0 ? ` + บันทึกคืนเงิน ฿${refund.toLocaleString("th-TH")}` : " (ไม่คืนเงิน)"}?`)) return;
+    } else {
+      if (!confirm("ยืนยันยกเลิกการจองนี้? ระบบจะคืนห้องกลับเข้าสต็อก")) return;
+    }
+
     setBusy(true);
-    const res = await fetch(`/api/reservations/${id}/cancel`, { method: "POST" });
+    const res = await fetch(`/api/reservations/${id}/cancel`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refund }),
+    });
     const data = await res.json().catch(() => ({}));
     setBusy(false);
-    if (!data.ok) {
-      alert(data.message || "ยกเลิกไม่สำเร็จ");
-      return;
-    }
+    if (!data.ok) { alert(data.message || "ยกเลิกไม่สำเร็จ"); return; }
     router.refresh();
   }
 

@@ -131,7 +131,9 @@ export default async function ReservationDetailPage({ params }: { params: Promis
                       <td className="mono">{p.createdAt.toISOString().slice(0, 10)}</td>
                       <td>{PAYMENT_METHODS[p.method] ?? p.method}</td>
                       <td className="muted">{p.note ?? "-"}</td>
-                      <td style={{ textAlign: "right", fontWeight: 600 }}>฿{money(p.amount)}</td>
+                      <td style={{ textAlign: "right", fontWeight: 600, color: p.amount < 0 ? "var(--red)" : undefined }}>
+                        {p.amount < 0 ? `-฿${money(-p.amount)}` : `฿${money(p.amount)}`}
+                      </td>
                       <td style={{ textAlign: "right" }}><DeletePaymentButton reservationId={r.id} paymentId={p.id} /></td>
                     </tr>
                   ))}
@@ -146,7 +148,7 @@ export default async function ReservationDetailPage({ params }: { params: Promis
 
       <div style={{ marginTop: 20, display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
         {r.guest?.email && <SendConfirmationButton id={r.id} />}
-        {r.status !== "cancelled" && <CancelButton id={r.id} otaLocked={!!r.externalRef} />}
+        {r.status !== "cancelled" && <CancelButton id={r.id} otaLocked={!!r.externalRef} paidAmount={paid} />}
       </div>
     </main>
   );
