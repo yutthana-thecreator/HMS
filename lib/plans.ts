@@ -19,7 +19,7 @@ export const PLANS: Record<PlanId, Plan> = {
   starter: {
     id: "starter",
     name: "Starter",
-    priceTHB: 990,
+    priceTHB: 1490,
     maxProperties: 1,
     maxRooms: 15,
     staffSeats: 3,
@@ -28,7 +28,7 @@ export const PLANS: Record<PlanId, Plan> = {
   pro: {
     id: "pro",
     name: "Pro",
-    priceTHB: 2900,
+    priceTHB: 3900,
     maxProperties: 3,
     maxRooms: 80,
     staffSeats: 15,
@@ -37,7 +37,7 @@ export const PLANS: Record<PlanId, Plan> = {
   enterprise: {
     id: "enterprise",
     name: "Enterprise",
-    priceTHB: 7900,
+    priceTHB: 9900,
     maxProperties: 999,
     maxRooms: 9999,
     staffSeats: 999,
