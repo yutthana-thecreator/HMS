@@ -24,9 +24,8 @@ export default function AdminOrgActions({ id, name, plan, suspended }: { id: str
   }
 
   function removeOrg() {
-    const typed = prompt(`⚠️ ลบโรงแรมถาวร ลบข้อมูลทั้งหมด (การจอง/ห้อง/ผู้ใช้) กู้คืนไม่ได้!\n\nพิมพ์ชื่อโรงแรมให้ตรงเพื่อยืนยัน:\n${name}`);
-    if (typed === null) return;
-    if (typed.trim() !== name) { alert("ชื่อไม่ตรง — ยกเลิกการลบ"); return; }
+    if (!confirm(`⚠️ ลบโรงแรม “${name}” ถาวร?\n\nจะลบข้อมูลทั้งหมด (การจอง/ห้อง/ผู้ใช้) — กู้คืนไม่ได้!`)) return;
+    if (!confirm(`ยืนยันอีกครั้ง — ลบ “${name}” จริงหรือไม่?`)) return;
     call("delete");
   }
 
