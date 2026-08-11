@@ -148,7 +148,7 @@ export default async function AdminPage() {
                   <td>{org._count.users}</td>
                   <td className="mono">{org.currentPeriodEnd ? org.currentPeriodEnd.toISOString().slice(0, 10) : "-"}</td>
                   <td className="mono">{org.createdAt.toISOString().slice(0, 10)}</td>
-                  <td><AdminOrgActions id={org.id} plan={org.plan} suspended={org.suspended} /></td>
+                  <td><AdminOrgActions id={org.id} name={org.name} plan={org.plan} suspended={org.suspended} /></td>
                 </tr>
               ))}
             </tbody>

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 
 const PLAN_IDS: [string, string][] = [["starter", "Starter"], ["pro", "Pro"], ["enterprise", "Enterprise"]];
 
-export default function AdminOrgActions({ id, plan, suspended }: { id: string; plan: string; suspended: boolean }) {
+export default function AdminOrgActions({ id, name, plan, suspended }: { id: string; name: string; plan: string; suspended: boolean }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [sel, setSel] = useState(plan);
@@ -23,6 +23,13 @@ export default function AdminOrgActions({ id, plan, suspended }: { id: string; p
     else alert(d.message || "ไม่สำเร็จ");
   }
 
+  function removeOrg() {
+    const typed = prompt(`⚠️ ลบโรงแรมถาวร ลบข้อมูลทั้งหมด (การจอง/ห้อง/ผู้ใช้) กู้คืนไม่ได้!\n\nพิมพ์ชื่อโรงแรมให้ตรงเพื่อยืนยัน:\n${name}`);
+    if (typed === null) return;
+    if (typed.trim() !== name) { alert("ชื่อไม่ตรง — ยกเลิกการลบ"); return; }
+    call("delete");
+  }
+
   const btn = { padding: "4px 8px", fontSize: 12 } as const;
   return (
     <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
@@ -36,6 +43,7 @@ export default function AdminOrgActions({ id, plan, suspended }: { id: string; p
       ) : (
         <button className="btn btn-ghost" style={{ ...btn, color: "var(--red)" }} disabled={busy} onClick={() => { if (confirm("ระงับโรงแรมนี้? ผู้ใช้จะเข้าระบบไม่ได้")) call("suspend"); }}>ระงับ</button>
       )}
+      <button className="btn btn-ghost" style={{ ...btn, color: "var(--red)", borderColor: "var(--red)" }} disabled={busy} onClick={removeOrg}>🗑 ลบ</button>
     </div>
   );
 }

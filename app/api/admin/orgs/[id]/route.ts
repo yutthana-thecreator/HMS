@@ -40,6 +40,24 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       return NextResponse.json({ ok: true, until: from.toISOString().slice(0, 10) });
     }
 
+    case "delete": {
+      // ลบข้อมูลลูกตามลำดับ (กัน FK Restrict ที่ RoomType) แล้วค่อยลบ org
+      await prisma.$transaction([
+        prisma.payment.deleteMany({ where: { reservation: { property: { orgId: id } } } }),
+        prisma.reservationRoom.deleteMany({ where: { reservation: { property: { orgId: id } } } }),
+        prisma.reservation.deleteMany({ where: { property: { orgId: id } } }),
+        prisma.channelMapping.deleteMany({ where: { channel: { property: { orgId: id } } } }),
+        prisma.room.deleteMany({ where: { property: { orgId: id } } }),
+        prisma.availability.deleteMany({ where: { property: { orgId: id } } }),
+        prisma.icalFeed.deleteMany({ where: { property: { orgId: id } } }),
+        prisma.channel.deleteMany({ where: { property: { orgId: id } } }),
+        prisma.roomType.deleteMany({ where: { property: { orgId: id } } }),
+        prisma.property.deleteMany({ where: { orgId: id } }),
+        prisma.organization.delete({ where: { id } }), // cascade: AppUser, Session, PaymentRequest
+      ]);
+      return NextResponse.json({ ok: true });
+    }
+
     default:
       return NextResponse.json({ ok: false, message: "action ไม่ถูกต้อง" }, { status: 400 });
   }
