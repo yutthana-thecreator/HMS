@@ -3,7 +3,7 @@
 import { createHmac, timingSafeEqual } from "crypto";
 
 const SECRET = process.env.STRIPE_SECRET_KEY || "";
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://hotel-management-system-topaz-xi.vercel.app";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://onecloudstay.com";
 
 export function stripeConfigured(): boolean {
   return SECRET.length > 0;

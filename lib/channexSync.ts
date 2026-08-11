@@ -12,7 +12,7 @@ import {
 } from "./channex";
 import { rangeDates, todayStr } from "./dates";
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://hotel-management-system-topaz-xi.vercel.app";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://onecloudstay.com";
 
 /** Onboarding wizard: สร้าง Channex property (ถ้ายังไม่มี) + provision ห้อง + ลง webhook + push — ปุ่มเดียวจบ */
 export async function onboardChannex(orgId: string) {
