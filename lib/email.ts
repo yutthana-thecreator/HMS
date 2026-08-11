@@ -113,6 +113,75 @@ export function sendBookingConfirmationSafe(reservationId: string): void {
   sendBookingConfirmation(reservationId).catch((e) => console.error("email failed:", (e as Error).message));
 }
 
+/** แจ้ง admin ว่ามีคำขอชำระเงินใหม่ (รอยืนยัน) */
+export async function sendAdminPaymentNotice(d: {
+  orgName: string;
+  planName: string;
+  cycleLabel: string;
+  amount: number;
+}): Promise<void> {
+  const admin = process.env.ADMIN_EMAIL;
+  if (!admin || !emailConfigured()) return;
+  const html = `<div style="font-family:sans-serif;max-width:520px;padding:20px">
+    <h2 style="margin:0 0 4px">💰 มีคำขอชำระเงินใหม่</h2>
+    <p style="color:#6b7280;margin:0 0 16px">รอการยืนยันใน /admin</p>
+    <table style="width:100%;font-size:15px">
+      <tr><td style="padding:6px 0;color:#6b7280">โรงแรม</td><td style="text-align:right;font-weight:600">${esc(d.orgName)}</td></tr>
+      <tr><td style="padding:6px 0;color:#6b7280">แพ็กเกจ</td><td style="text-align:right;font-weight:600">${esc(d.planName)} · ${esc(d.cycleLabel)}</td></tr>
+      <tr><td style="padding:6px 0;color:#6b7280">ยอด</td><td style="text-align:right;font-weight:700;color:#4f46e5">฿${money(d.amount)}</td></tr>
+    </table>
+    <p style="margin:16px 0 0;font-size:13px;color:#6b7280">เช็คเงินเข้า PromptPay แล้วกด “ยืนยัน” ในหน้า /admin</p>
+  </div>`;
+  await sendEmail({ to: admin, subject: `💰 คำขอชำระเงิน · ${d.orgName} · ฿${money(d.amount)}`, html });
+}
+
+/** แจ้งลูกค้าว่ายืนยันการชำระแล้ว แพ็กเปิดใช้งาน */
+export async function sendPaymentConfirmed(orgId: string): Promise<void> {
+  if (!emailConfigured()) return;
+  const org = await prisma.organization.findUnique({ where: { id: orgId } });
+  const owner = await prisma.appUser.findFirst({ where: { orgId }, orderBy: { createdAt: "asc" } });
+  if (!org || !owner?.email) return;
+  const until = org.currentPeriodEnd ? org.currentPeriodEnd.toISOString().slice(0, 10) : "-";
+  const html = `<div style="font-family:sans-serif;max-width:520px;padding:20px">
+    <h2 style="margin:0 0 8px">✅ ยืนยันการชำระเงินแล้ว</h2>
+    <p>แพ็กเกจของ <b>${esc(org.name)}</b> เปิดใช้งานเรียบร้อย 🎉</p>
+    <p style="font-size:15px">ใช้งานได้ถึง: <b>${until}</b></p>
+    <p style="margin-top:16px;font-size:13px;color:#6b7280">ขอบคุณที่ใช้บริการ · ระบบจะเตือนก่อนหมดอายุอีกครั้ง</p>
+  </div>`;
+  await sendEmail({ to: owner.email, subject: `✅ แพ็กเกจเปิดใช้งานแล้ว · ${org.name}`, html });
+}
+
+/** batch: เตือนแพ็กใกล้หมดอายุ (7 วัน + 1 วัน) — เรียกจาก cron รายวัน */
+export async function sendSubscriptionReminders(): Promise<{ sent: number }> {
+  if (!emailConfigured()) return { sent: 0 };
+  const now = new Date();
+  const targets = [7, 1].map((d) => {
+    const dt = new Date(now);
+    dt.setDate(dt.getDate() + d);
+    return dt.toISOString().slice(0, 10);
+  });
+  const orgs = await prisma.organization.findMany({
+    where: { planStatus: "active", currentPeriodEnd: { not: null } },
+    include: { users: { orderBy: { createdAt: "asc" }, take: 1 } },
+  });
+  let sent = 0;
+  for (const org of orgs) {
+    const endStr = org.currentPeriodEnd!.toISOString().slice(0, 10);
+    if (!targets.includes(endStr)) continue;
+    const email = org.users[0]?.email;
+    if (!email) continue;
+    const html = `<div style="font-family:sans-serif;max-width:520px;padding:20px">
+      <h2 style="margin:0 0 8px">⏰ แพ็กเกจใกล้หมดอายุ</h2>
+      <p>แพ็กเกจของ <b>${esc(org.name)}</b> จะหมดอายุวันที่ <b>${endStr}</b></p>
+      <p>ต่ออายุเพื่อใช้งานต่อเนื่อง (สแกน PromptPay ในหน้าตั้งค่า)</p>
+      <p style="margin-top:14px"><a href="${process.env.NEXT_PUBLIC_APP_URL || "https://hotel-management-system-topaz-xi.vercel.app"}/settings" style="background:#4f46e5;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none">ต่ออายุแพ็กเกจ</a></p>
+    </div>`;
+    const r = await sendEmail({ to: email, subject: `⏰ แพ็กเกจใกล้หมดอายุ (${endStr}) · ${org.name}`, html });
+    if (r.ok) sent++;
+  }
+  return { sent };
+}
+
 /** HTML template เตือนก่อนเช็คอิน */
 function reminderHtml(d: {
   hotelName: string;

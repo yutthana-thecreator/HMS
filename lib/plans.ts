@@ -49,6 +49,28 @@ export function getPlan(planId: string | null | undefined): Plan {
   return PLANS[(planId as PlanId) ?? "starter"] ?? PLANS.starter;
 }
 
+export type BillingCycle = "monthly" | "yearly";
+
+// รายปี = ราคาเดือน × 10 (จ่าย 10 เดือน ได้ 12 → ประหยัด ~17%)
+export const YEARLY_MONTHS_CHARGED = 10;
+
+export function planPrice(plan: Plan, cycle: BillingCycle): number {
+  return cycle === "yearly" ? plan.priceTHB * YEARLY_MONTHS_CHARGED : plan.priceTHB;
+}
+
+/** ส่วนลดรายปีเป็น % (สำหรับแสดงผล) */
+export function yearlyDiscountPct(): number {
+  return Math.round((1 - YEARLY_MONTHS_CHARGED / 12) * 100);
+}
+
+/** วันหมดอายุถัดไป: ต่อจากวันหมดเดิม (ถ้ายังไม่หมด) หรือจากวันนี้ */
+export function nextPeriodEnd(from: Date, cycle: BillingCycle): Date {
+  const base = from > new Date() ? new Date(from) : new Date();
+  if (cycle === "yearly") base.setFullYear(base.getFullYear() + 1);
+  else base.setMonth(base.getMonth() + 1);
+  return base;
+}
+
 /** true ถ้าเข้าถึงระบบได้ (trial ยังไม่หมด หรือจ่ายเงินอยู่) */
 export function isActiveSubscription(planStatus: string, trialEndsAt: Date | null): boolean {
   if (planStatus === "active") return true;

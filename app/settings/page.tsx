@@ -1,9 +1,8 @@
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
-import { PLANS, getPlan } from "@/lib/plans";
+import { PLANS, getPlan, yearlyDiscountPct, YEARLY_MONTHS_CHARGED } from "@/lib/plans";
 import AddRoomTypeForm from "./AddRoomTypeForm";
-import PlanSelector from "./PlanSelector";
-import BillingPanel from "./BillingPanel";
+import PromptPayBilling from "./PromptPayBilling";
 import IcalManager from "./IcalManager";
 import ChannelWizard from "./ChannelWizard";
 import BufferInput from "./BufferInput";
@@ -26,11 +25,16 @@ function Meter({ used, limit }: { used: number; limit: number }) {
   );
 }
 
-export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ billing?: string }> }) {
+export default async function SettingsPage() {
   const user = await requireUser();
   const org = user.organization;
   const plan = getPlan(org.plan);
-  const sp = await searchParams;
+
+  const pendingReq = await prisma.paymentRequest.findFirst({
+    where: { orgId: org.id, status: "pending" },
+    orderBy: { createdAt: "desc" },
+    select: { plan: true, cycle: true, amount: true },
+  });
 
   const [property, roomTypes, roomCount, propCount, staffCount, channels] = await Promise.all([
     prisma.property.findFirst({ where: { orgId: org.id }, orderBy: { createdAt: "asc" } }),
@@ -59,11 +63,6 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
     <main className="container">
       <h1 className="page-title">ตั้งค่า & แพ็กเกจ</h1>
       <p className="page-sub">{org.name}</p>
-
-      {sp.billing === "success" && (
-        <div className="alert success">✅ ชำระเงินสำเร็จ! แพ็กเกจกำลังเปิดใช้งาน (อัปเดตภายในไม่กี่วินาที — refresh ได้)</div>
-      )}
-      {sp.billing === "cancel" && <div className="alert error">ยกเลิกการชำระเงิน — ยังไม่มีการเปลี่ยนแปลง</div>}
 
       {/* ---- แพ็กเกจปัจจุบัน + usage ---- */}
       <div className="card" style={{ marginBottom: 24 }}>
@@ -99,38 +98,37 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
               <div style={{ fontWeight: 700, marginTop: 4 }}>{plan.channelManager ? "✓ ใช้ได้" : "✗ (เฉพาะ iCal)"}</div>
             </div>
           </div>
-          <div style={{ marginTop: 16, display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-            {org.currentPeriodEnd && org.planStatus === "active" && (
-              <span className="muted" style={{ fontSize: 13 }}>รอบบิลถัดไป: {org.currentPeriodEnd.toISOString().slice(0, 10)}</span>
-            )}
-            <BillingPanel hasBilling={!!org.stripeCustomerId} />
-          </div>
+          {org.currentPeriodEnd && org.planStatus === "active" && (
+            <div style={{ marginTop: 16 }}>
+              <span className="muted" style={{ fontSize: 13 }}>
+                ใช้งานได้ถึง: <b>{org.currentPeriodEnd.toISOString().slice(0, 10)}</b> ({org.billingCycle === "yearly" ? "รายปี" : "รายเดือน"})
+              </span>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* ---- เลือก/เปลี่ยนแพ็กเกจ ---- */}
+      {/* ---- เลือก/เปลี่ยนแพ็กเกจ (PromptPay) ---- */}
       <div className="card" style={{ marginBottom: 24 }}>
         <div className="card-head"><h2>แพ็กเกจทั้งหมด</h2></div>
         <div className="card-body">
-          <div className="plan-grid">
-            {Object.values(PLANS).map((p) => (
-              <div key={p.id} className={`plan-tier ${p.id === plan.id ? "current" : ""}`}>
-                <div style={{ fontWeight: 700, fontSize: 17 }}>{p.name}</div>
-                <div className="price">฿{money(p.priceTHB)}<span style={{ fontSize: 14, color: "var(--text-muted)", fontWeight: 400 }}>/เดือน</span></div>
-                <ul>
-                  <li>{p.maxRooms} ห้อง</li>
-                  <li>{p.maxProperties} ที่พัก</li>
-                  <li>{p.staffSeats} ผู้ใช้งาน</li>
-                  <li>{p.channelManager ? "เชื่อม OTA เรียลไทม์" : "iCal เท่านั้น"}</li>
-                </ul>
-                <div style={{ marginTop: 14 }}>
-                  <PlanSelector planId={p.id} current={p.id === plan.id} />
-                </div>
-              </div>
-            ))}
-          </div>
+          <PromptPayBilling
+            plans={Object.values(PLANS).map((p) => ({
+              id: p.id,
+              name: p.name,
+              priceTHB: p.priceTHB,
+              maxRooms: p.maxRooms,
+              maxProperties: p.maxProperties,
+              staffSeats: p.staffSeats,
+              channelManager: p.channelManager,
+            }))}
+            currentPlanId={plan.id}
+            pending={pendingReq}
+            yearlyDiscount={yearlyDiscountPct()}
+            yearlyMonths={YEARLY_MONTHS_CHARGED}
+          />
           <p className="muted" style={{ fontSize: 13, marginTop: 14 }}>
-            💳 ชำระเงินปลอดภัยผ่าน Stripe (รายเดือน THB) · เปลี่ยน/ยกเลิกได้ตลอดที่ปุ่ม “จัดการการชำระเงิน”
+            💳 ชำระผ่าน PromptPay — สแกน QR จ่ายตามยอด แล้วผู้ดูแลยืนยัน · รายปีประหยัด {yearlyDiscountPct()}%
           </p>
         </div>
       </div>

@@ -21,12 +21,33 @@ model Organization {
   plan                 String    @default("starter")
   planStatus           String    @default("trialing") // trialing | active | past_due | canceled
   trialEndsAt          DateTime?
+  billingCycle         String    @default("monthly") // monthly | yearly
   stripeCustomerId     String?   @unique
   stripeSubscriptionId String?   @unique
-  currentPeriodEnd     DateTime? // วันหมดรอบบิลปัจจุบัน (จาก Stripe)
+  currentPeriodEnd     DateTime? // วันหมดอายุแพ็กเกจปัจจุบัน
   createdAt  DateTime   @default(now())
   properties Property[]
   users      AppUser[]
+  paymentRequests PaymentRequest[]
+}
+
+// คำขอชำระเงินค่าแพ็ก (PromptPay) — รอ admin ยืนยัน
+model PaymentRequest {
+  id          String    @id @default(cuid())
+  orgId       String
+  plan        String    // starter | pro | enterprise
+  cycle       String    // monthly | yearly
+  amount      Float
+  status      String    @default("pending") // pending | confirmed | rejected
+  slipUrl     String?   // ลิงก์สลิป (ถ้าลูกค้าแนบ)
+  note        String?
+  createdAt   DateTime  @default(now())
+  reviewedAt  DateTime?
+  reviewedBy  String?   // อีเมล admin ที่ยืนยัน
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([orgId])
 }
 
 model Property {

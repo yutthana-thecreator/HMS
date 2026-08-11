@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { isAdmin } from "@/lib/auth";
 import { getPlan } from "@/lib/plans";
 import AdminLogout from "./AdminLogout";
+import PaymentReview from "./PaymentReview";
 
 export const dynamic = "force-dynamic";
 
@@ -41,6 +42,12 @@ export default async function AdminPage() {
   const activeCount = rows.filter((r) => r.org.planStatus === "active").length;
   const trialCount = rows.filter((r) => r.org.planStatus === "trialing").length;
 
+  const pendingPayments = await prisma.paymentRequest.findMany({
+    where: { status: "pending" },
+    include: { organization: { select: { name: true } } },
+    orderBy: { createdAt: "asc" },
+  });
+
   return (
     <main className="container">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start" }}>
@@ -72,6 +79,36 @@ export default async function AdminPage() {
         <div className="stat-card">
           <div className="label">รายได้/เดือน (MRR)</div>
           <div className="value">฿{money(mrr)}</div>
+        </div>
+      </div>
+
+      {/* ---- รอยืนยันการชำระเงิน (PromptPay) ---- */}
+      <div className="card" style={{ marginBottom: 24, borderColor: pendingPayments.length ? "var(--primary)" : undefined }}>
+        <div className="card-head">
+          <h2>💰 รอยืนยันการชำระเงิน {pendingPayments.length > 0 && <span className="badge pending">{pendingPayments.length}</span>}</h2>
+        </div>
+        <div className="cal-wrap">
+          {pendingPayments.length === 0 ? (
+            <p className="muted" style={{ padding: 20, margin: 0 }}>ไม่มีคำขอรอยืนยัน</p>
+          ) : (
+            <table className="table">
+              <thead>
+                <tr><th>โรงแรม</th><th>แพ็กเกจ</th><th>รอบ</th><th>ยอด</th><th>แจ้งเมื่อ</th><th></th></tr>
+              </thead>
+              <tbody>
+                {pendingPayments.map((pr) => (
+                  <tr key={pr.id}>
+                    <td><strong>{pr.organization.name}</strong></td>
+                    <td>{getPlan(pr.plan).name}</td>
+                    <td>{pr.cycle === "yearly" ? "รายปี" : "รายเดือน"}</td>
+                    <td style={{ fontWeight: 700 }}>฿{money(pr.amount)}</td>
+                    <td className="mono">{pr.createdAt.toISOString().slice(0, 16).replace("T", " ")}</td>
+                    <td style={{ textAlign: "right" }}><PaymentReview id={pr.id} /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
 
