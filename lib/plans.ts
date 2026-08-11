@@ -23,7 +23,7 @@ export const PLANS: Record<PlanId, Plan> = {
     maxProperties: 1,
     maxRooms: 15,
     staffSeats: 3,
-    channelManager: false,
+    channelManager: true,
   },
   pro: {
     id: "pro",
