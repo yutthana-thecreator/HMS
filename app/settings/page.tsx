@@ -5,7 +5,7 @@ import AddRoomTypeForm from "./AddRoomTypeForm";
 import PromptPayBilling from "./PromptPayBilling";
 import IcalManager from "./IcalManager";
 import ChannelWizard from "./ChannelWizard";
-import BufferInput from "./BufferInput";
+import RoomTypeRow from "./RoomTypeRow";
 import EmailPanel from "./EmailPanel";
 import { emailConfigured } from "@/lib/email";
 
@@ -138,22 +138,18 @@ export default async function SettingsPage() {
         <div className="card-head"><h2>ประเภทห้อง ({property?.name ?? "-"})</h2></div>
         <div className="card-body">
           {roomTypes.length > 0 ? (
-            <table className="table" style={{ marginBottom: 20 }}>
-              <thead>
-                <tr><th>ชื่อ</th><th>รหัส</th><th>จำนวนห้อง</th><th>ราคา/คืน</th><th>กัน OTA (buffer)</th></tr>
-              </thead>
-              <tbody>
-                {roomTypes.map((rt) => (
-                  <tr key={rt.id}>
-                    <td>{rt.name}</td>
-                    <td className="mono">{rt.code}</td>
-                    <td>{rt._count.rooms}</td>
-                    <td>฿{money(rt.basePrice)}</td>
-                    <td><BufferInput id={rt.id} value={rt.otaBuffer} /></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <div className="cal-wrap" style={{ marginBottom: 20 }}>
+              <table className="table">
+                <thead>
+                  <tr><th>ชื่อ</th><th>รหัส</th><th>ห้อง</th><th>ราคา/คืน (฿)</th><th>กัน OTA</th><th></th></tr>
+                </thead>
+                <tbody>
+                  {roomTypes.map((rt) => (
+                    <RoomTypeRow key={rt.id} id={rt.id} name={rt.name} code={rt.code} units={rt._count.rooms} price={rt.basePrice} buffer={rt.otaBuffer} />
+                  ))}
+                </tbody>
+              </table>
+            </div>
           ) : (
             <p className="muted" style={{ marginBottom: 16 }}>ยังไม่มีประเภทห้อง — เพิ่มด้านล่างเพื่อเริ่มรับการจอง</p>
           )}
