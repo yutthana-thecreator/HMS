@@ -103,6 +103,9 @@ export default function PromptPayBilling({
               {cycle === "yearly" && (
                 <div style={{ fontSize: 12, color: "var(--green)", fontWeight: 600 }}>ประหยัด ฿{money(p.priceTHB * 12 - p.priceTHB * yearlyMonths)}/ปี</div>
               )}
+              <div style={{ display: "inline-block", fontSize: 11, fontWeight: 700, color: "var(--green)", background: "rgba(22,163,74,0.1)", padding: "2px 8px", borderRadius: 6, marginTop: 6 }}>
+                🎁 ทดลองฟรี 14 วัน
+              </div>
               <ul>
                 <li>{p.maxRooms} ห้อง</li>
                 <li>{p.maxProperties} ที่พัก</li>
