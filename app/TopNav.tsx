@@ -2,23 +2,26 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { makeT, type Lang } from "@/lib/i18n";
 
 const links = [
-  { href: "/", label: "แดชบอร์ด" },
-  { href: "/frontdesk", label: "เคาน์เตอร์" },
-  { href: "/book", label: "จองห้อง" },
-  { href: "/reservations", label: "การจอง" },
-  { href: "/housekeeping", label: "แม่บ้าน" },
-  { href: "/settings", label: "ตั้งค่า & แพ็กเกจ" },
+  { href: "/", key: "nav.dashboard" },
+  { href: "/frontdesk", key: "nav.frontdesk" },
+  { href: "/book", key: "nav.book" },
+  { href: "/reservations", key: "nav.reservations" },
+  { href: "/housekeeping", key: "nav.housekeeping" },
+  { href: "/settings", key: "nav.settings" },
 ];
 
 export default function TopNav({
+  lang,
   hotelName,
   userName,
   userEmail,
   planName,
   trialing,
 }: {
+  lang: Lang;
   hotelName: string;
   userName: string;
   userEmail: string;
@@ -27,6 +30,7 @@ export default function TopNav({
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const t = makeT(lang);
 
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -39,13 +43,13 @@ export default function TopNav({
       <div className="nav-links">
         {links.map((l) => (
           <Link key={l.href} href={l.href} className={pathname === l.href ? "active" : ""}>
-            {l.label}
+            {t(l.key)}
           </Link>
         ))}
       </div>
       <div className="org-chip">
         <span className={`plan-badge ${trialing ? "trial" : ""}`}>
-          {trialing ? "ทดลองใช้" : planName}
+          {trialing ? t("nav.trial") : planName}
         </span>
         <div className="user-mini">
           <strong>{hotelName}</strong>

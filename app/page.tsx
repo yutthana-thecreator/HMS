@@ -3,6 +3,8 @@ import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { getPlan, isActiveSubscription } from "@/lib/plans";
 import { rangeDates, todayStr, weekdayShortTH, isWeekend } from "@/lib/dates";
+import { makeT } from "@/lib/i18n";
+import { getLang } from "@/lib/i18n-server";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +16,7 @@ function money(n: number) {
 
 export default async function DashboardPage() {
   const user = await requireUser();
+  const t = makeT(await getLang());
   const org = user.organization;
   const plan = getPlan(org.plan);
   const active = isActiveSubscription(org.planStatus, org.trialEndsAt);
@@ -26,9 +29,9 @@ export default async function DashboardPage() {
   if (!property) {
     return (
       <main className="container">
-        <h1 className="page-title">ยินดีต้อนรับ 👋</h1>
-        <p className="page-sub">ยังไม่มีที่พัก — ไปที่หน้าตั้งค่าเพื่อเริ่มต้น</p>
-        <Link href="/settings" className="btn">ไปตั้งค่า</Link>
+        <h1 className="page-title">{t("dash.welcome")}</h1>
+        <p className="page-sub">{t("dash.noProperty")}</p>
+        <Link href="/settings" className="btn">{t("dash.goSettings")}</Link>
       </main>
     );
   }
@@ -90,65 +93,65 @@ export default async function DashboardPage() {
     <main className="container">
       {!active && (
         <div className="alert error" style={{ marginBottom: 20 }}>
-          ⚠️ การทดลองใช้/แพ็กเกจของคุณหมดอายุแล้ว — <Link href="/settings" style={{ fontWeight: 700 }}>ต่ออายุที่นี่</Link> เพื่อใช้งานต่อ
+          ⚠️ {t("dash.trialExpired")} — <Link href="/settings" style={{ fontWeight: 700 }}>{t("dash.renewHere")}</Link>
         </div>
       )}
 
       <h1 className="page-title">{property.name}</h1>
-      <p className="page-sub">แดชบอร์ดภาพรวม · {today}</p>
+      <p className="page-sub">{t("dash.subtitle")} · {today}</p>
 
       {roomTypes.length === 0 ? (
         <div className="card">
           <div className="card-body" style={{ textAlign: "center", padding: 40 }}>
-            <p style={{ fontSize: 17, fontWeight: 600 }}>ยังไม่มีประเภทห้อง</p>
-            <p className="muted">เพิ่มประเภทห้องแรกเพื่อเริ่มรับการจอง</p>
-            <Link href="/settings" className="btn" style={{ marginTop: 12 }}>+ เพิ่มประเภทห้อง</Link>
+            <p style={{ fontSize: 17, fontWeight: 600 }}>{t("dash.noRoomTypes")}</p>
+            <p className="muted">{t("dash.addFirstRoomType")}</p>
+            <Link href="/settings" className="btn" style={{ marginTop: 12 }}>{t("dash.addRoomType")}</Link>
           </div>
         </div>
       ) : (
         <>
           <div className="stat-grid">
             <div className="stat-card">
-              <div className="label">Occupancy วันนี้</div>
+              <div className="label">{t("dash.occToday")}</div>
               <div className="value">{occ}% <small>({soldToday}/{totalUnitsToday})</small></div>
             </div>
             <div className="stat-card">
-              <div className="label">เข้าพักวันนี้</div>
+              <div className="label">{t("dash.arrivalsToday")}</div>
               <div className="value">{arrivals}</div>
             </div>
             <div className="stat-card">
-              <div className="label">พักอยู่ (In-house)</div>
+              <div className="label">{t("dash.inhouse")}</div>
               <div className="value">{inhouse}</div>
             </div>
             <div className="stat-card">
-              <div className="label">การจองทั้งหมด</div>
+              <div className="label">{t("dash.totalBookings")}</div>
               <div className="value">{activeRes}</div>
             </div>
             <div className="stat-card">
-              <div className="label">รายได้เดือนนี้ (ชำระแล้ว)</div>
+              <div className="label">{t("dash.revenueMonth")}</div>
               <div className="value" style={{ color: "var(--green)" }}>฿{fmt(revenueMonth)}</div>
             </div>
             <div className="stat-card">
-              <div className="label">ค้างชำระ (ทั้งหมด)</div>
+              <div className="label">{t("dash.outstanding")}</div>
               <div className="value" style={{ color: outstanding > 0 ? "var(--red)" : undefined }}>฿{fmt(outstanding)}</div>
             </div>
             <div className="stat-card">
-              <div className="label">ห้องทั้งหมด</div>
+              <div className="label">{t("dash.totalRooms")}</div>
               <div className="value">{totalRooms} <small>/ {plan.maxRooms}</small></div>
             </div>
           </div>
 
           <div className="card">
             <div className="card-head">
-              <h2>ปฏิทินห้องว่าง · {DAYS} วันข้างหน้า</h2>
-              <Link href="/book" className="btn">+ สร้างการจอง</Link>
+              <h2>{t("dash.calendar")} · {DAYS} {t("dash.daysAhead")}</h2>
+              <Link href="/book" className="btn">{t("dash.createBooking")}</Link>
             </div>
             <div className="card-body">
               <div className="cal-wrap">
                 <table className="cal">
                   <thead>
                     <tr>
-                      <th className="rt-name">ประเภทห้อง</th>
+                      <th className="rt-name">{t("dash.roomType")}</th>
                       {dates.map((d) => (
                         <th key={d} className={isWeekend(d) ? "weekend" : ""}>
                           <div>{weekdayShortTH(d)}</div>
@@ -162,7 +165,7 @@ export default async function DashboardPage() {
                       <tr key={rt.id}>
                         <td className="rt-name">
                           {rt.name}
-                          <small>{rt._count.rooms} ห้อง · ฿{money(rt.basePrice)}</small>
+                          <small>{rt._count.rooms} {t("dash.rooms")} · ฿{money(rt.basePrice)}</small>
                         </td>
                         {dates.map((d) => {
                           const cell = map.get(`${rt.id}|${d}`);
@@ -183,9 +186,9 @@ export default async function DashboardPage() {
                 </table>
               </div>
               <div className="legend" style={{ marginTop: 14 }}>
-                <span><span className="dot" style={{ background: "var(--green-soft)" }} /> ว่าง</span>
-                <span><span className="dot" style={{ background: "var(--amber-soft)" }} /> เหลือน้อย (1)</span>
-                <span><span className="dot" style={{ background: "var(--red-soft)" }} /> เต็ม / ปิดขาย</span>
+                <span><span className="dot" style={{ background: "var(--green-soft)" }} /> {t("dash.legendFree")}</span>
+                <span><span className="dot" style={{ background: "var(--amber-soft)" }} /> {t("dash.legendLow")} (1)</span>
+                <span><span className="dot" style={{ background: "var(--red-soft)" }} /> {t("dash.legendFull")}</span>
               </div>
             </div>
           </div>

@@ -2,8 +2,11 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import "./globals.css";
 import TopNav from "./TopNav";
+import LanguageToggle from "./LanguageToggle";
 import { getCurrentUser } from "@/lib/auth";
 import { getPlan } from "@/lib/plans";
+import { makeT } from "@/lib/i18n";
+import { getLang } from "@/lib/i18n-server";
 
 export const metadata: Metadata = {
   title: "OneCloudStay — ระบบจัดการห้องพักบนคลาวด์",
@@ -20,9 +23,11 @@ export default async function RootLayout({
   const plan = getPlan(org?.plan);
   const pathname = (await headers()).get("x-pathname") ?? "";
   const isAdminArea = pathname.startsWith("/admin");
+  const lang = await getLang();
+  const t = makeT(lang);
 
   return (
-    <html lang="th">
+    <html lang={lang}>
       <body>
         <header className="site-header">
           <nav className="nav">
@@ -31,6 +36,7 @@ export default async function RootLayout({
             </div>
             {user && org && !isAdminArea && (
               <TopNav
+                lang={lang}
                 hotelName={org.name}
                 userName={user.name ?? ""}
                 userEmail={user.email}
@@ -38,7 +44,10 @@ export default async function RootLayout({
                 trialing={org.planStatus === "trialing"}
               />
             )}
-            {isAdminArea && <span className="muted" style={{ fontSize: 14 }}>ผู้ดูแลระบบ</span>}
+            {isAdminArea && <span className="muted" style={{ fontSize: 14 }}>{t("nav.admin")}</span>}
+            <div style={{ marginLeft: "auto" }}>
+              <LanguageToggle lang={lang} />
+            </div>
           </nav>
         </header>
         {children}
