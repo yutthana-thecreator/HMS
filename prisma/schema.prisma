@@ -99,6 +99,7 @@ model Room {
   status     String   @default("clean") // clean | occupied | dirty | cleaning | inspected | out_of_order
   property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
   roomType   RoomType @relation(fields: [roomTypeId], references: [id], onDelete: Restrict)
+  reservationRooms ReservationRoom[]
 
   @@unique([propertyId, number])
 }
@@ -189,6 +190,8 @@ model Reservation {
   guest       Guest?            @relation(fields: [guestId], references: [id], onDelete: SetNull)
   channel     Channel?          @relation(fields: [channelId], references: [id], onDelete: SetNull)
   checkinReminderSent Boolean       @default(false) // กันส่งอีเมลเตือนซ้ำ
+  checkinAt   DateTime?         // เวลาเช็คอินจริง
+  checkoutAt  DateTime?         // เวลาเช็คเอาต์จริง
   rooms       ReservationRoom[]
   payments    Payment[]
 
@@ -220,6 +223,7 @@ model ReservationRoom {
   priceTotal    Float       @default(0)
   reservation   Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
   roomType      RoomType    @relation(fields: [roomTypeId], references: [id], onDelete: Restrict)
+  room          Room?       @relation(fields: [roomId], references: [id], onDelete: SetNull)
 
   @@index([roomTypeId, checkinDate, checkoutDate])
 }

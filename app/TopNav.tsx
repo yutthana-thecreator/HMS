@@ -5,8 +5,10 @@ import { usePathname, useRouter } from "next/navigation";
 
 const links = [
   { href: "/", label: "แดชบอร์ด" },
+  { href: "/frontdesk", label: "เคาน์เตอร์" },
   { href: "/book", label: "จองห้อง" },
   { href: "/reservations", label: "การจอง" },
+  { href: "/housekeeping", label: "แม่บ้าน" },
   { href: "/settings", label: "ตั้งค่า & แพ็กเกจ" },
 ];
 
