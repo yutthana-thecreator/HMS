@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { todayStr } from "@/lib/dates";
+import { makeT } from "@/lib/i18n";
+import { getLang } from "@/lib/i18n-server";
 import CheckInButton from "./CheckInButton";
 import CheckOutButton from "./CheckOutButton";
 
@@ -8,9 +10,11 @@ export const dynamic = "force-dynamic";
 
 export default async function FrontDeskPage() {
   const user = await requireUser();
+  const lang = await getLang();
+  const t = makeT(lang);
   const property = await prisma.property.findFirst({ where: { orgId: user.orgId }, orderBy: { createdAt: "asc" } });
   if (!property) {
-    return <main className="container"><h1 className="page-title">หน้าเคาน์เตอร์</h1><p className="muted">ยังไม่มีที่พัก</p></main>;
+    return <main className="container"><h1 className="page-title">{t("fd.title")}</h1><p className="muted">{t("dash.noProperty")}</p></main>;
   }
   const today = todayStr(property.timezone);
 
@@ -38,18 +42,18 @@ export default async function FrontDeskPage() {
 
   return (
     <main className="container">
-      <h1 className="page-title">หน้าเคาน์เตอร์</h1>
+      <h1 className="page-title">{t("fd.title")}</h1>
       <p className="page-sub">{property.name} · {today}</p>
 
       {/* Arrivals */}
       <div className="card" style={{ marginBottom: 24 }}>
-        <div className="card-head"><h2>รอเช็คอิน {arrivals.length > 0 && <span className="badge pending">{arrivals.length}</span>}</h2></div>
+        <div className="card-head"><h2>{t("fd.arrivals")} {arrivals.length > 0 && <span className="badge pending">{arrivals.length}</span>}</h2></div>
         <div className="cal-wrap">
           {arrivals.length === 0 ? (
-            <p className="muted" style={{ padding: 20, margin: 0 }}>ไม่มีแขกรอเช็คอิน</p>
+            <p className="muted" style={{ padding: 20, margin: 0 }}>{t("fd.noArrivals")}</p>
           ) : (
             <table className="table">
-              <thead><tr><th>รหัส</th><th>ผู้เข้าพัก</th><th>ห้อง</th><th>เข้า → ออก</th><th></th></tr></thead>
+              <thead><tr><th>{t("res.code")}</th><th>{t("res.guest")}</th><th>{t("common.room")}</th><th>{t("res.dates")}</th><th></th></tr></thead>
               <tbody>
                 {arrivals.map((r) => {
                   const rr = r.rooms[0];
@@ -57,10 +61,10 @@ export default async function FrontDeskPage() {
                   return (
                     <tr key={r.id}>
                       <td className="mono">{r.code}</td>
-                      <td>{r.guest?.fullName ?? "-"}{rr && rr.checkinDate < today && <span className="badge cancelled" style={{ marginLeft: 6 }}>เกินกำหนด</span>}</td>
+                      <td>{r.guest?.fullName ?? "-"}{rr && rr.checkinDate < today && <span className="badge cancelled" style={{ marginLeft: 6 }}>{t("fd.overdue")}</span>}</td>
                       <td>{rr?.roomType.name ?? "-"}</td>
                       <td className="mono">{rr?.checkinDate} → {rr?.checkoutDate}</td>
-                      <td style={{ textAlign: "right" }}><CheckInButton reservationId={r.id} rooms={free} /></td>
+                      <td style={{ textAlign: "right" }}><CheckInButton reservationId={r.id} lang={lang} rooms={free} /></td>
                     </tr>
                   );
                 })}
@@ -72,13 +76,13 @@ export default async function FrontDeskPage() {
 
       {/* In-house */}
       <div className="card">
-        <div className="card-head"><h2>พักอยู่ (In-house) {inhouse.length > 0 && <span className="badge confirmed">{inhouse.length}</span>}</h2></div>
+        <div className="card-head"><h2>{t("fd.inhouse")} {inhouse.length > 0 && <span className="badge confirmed">{inhouse.length}</span>}</h2></div>
         <div className="cal-wrap">
           {inhouse.length === 0 ? (
-            <p className="muted" style={{ padding: 20, margin: 0 }}>ไม่มีแขกพักอยู่</p>
+            <p className="muted" style={{ padding: 20, margin: 0 }}>{t("fd.noInhouse")}</p>
           ) : (
             <table className="table">
-              <thead><tr><th>รหัส</th><th>ผู้เข้าพัก</th><th>ห้อง</th><th>ออกวันที่</th><th></th></tr></thead>
+              <thead><tr><th>{t("res.code")}</th><th>{t("res.guest")}</th><th>{t("common.room")}</th><th>{t("fd.checkoutDate")}</th><th></th></tr></thead>
               <tbody>
                 {inhouse.map((r) => {
                   const rr = r.rooms[0];
@@ -87,9 +91,9 @@ export default async function FrontDeskPage() {
                     <tr key={r.id}>
                       <td className="mono">{r.code}</td>
                       <td>{r.guest?.fullName ?? "-"}</td>
-                      <td><strong>{rr?.room?.number ? `ห้อง ${rr.room.number}` : rr?.roomType.name}</strong></td>
-                      <td className="mono">{rr?.checkoutDate}{leavingToday && <span className="badge pending" style={{ marginLeft: 6 }}>ออกวันนี้</span>}</td>
-                      <td style={{ textAlign: "right" }}><CheckOutButton reservationId={r.id} /></td>
+                      <td><strong>{rr?.room?.number ? `${t("common.room")} ${rr.room.number}` : rr?.roomType.name}</strong></td>
+                      <td className="mono">{rr?.checkoutDate}{leavingToday && <span className="badge pending" style={{ marginLeft: 6 }}>{t("fd.leavingToday")}</span>}</td>
+                      <td style={{ textAlign: "right" }}><CheckOutButton reservationId={r.id} lang={lang} /></td>
                     </tr>
                   );
                 })}

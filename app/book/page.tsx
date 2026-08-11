@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { makeT, type Lang } from "@/lib/i18n";
 
 type RoomType = { id: string; name: string; code: string; basePrice: number; maxOccupancy: number; _count?: { rooms: number } };
 type Channel = { id: string; name: string; type: string };
@@ -58,6 +59,12 @@ export default function BookPage() {
   const [imgBusy, setImgBusy] = useState(false);
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<{ ok: boolean; msg: string } | null>(null);
+  const [lang, setLang] = useState<Lang>("th");
+  const t = makeT(lang);
+
+  useEffect(() => {
+    setLang(document.cookie.includes("lang=en") ? "en" : "th");
+  }, []);
 
   useEffect(() => {
     fetch("/api/room-types")
@@ -107,7 +114,7 @@ export default function BookPage() {
         const r = data.reservation;
         setResult({
           ok: true,
-          msg: `✅ จองสำเร็จ! รหัส ${r.code} · ${r.rooms.length} ห้อง ${r.rooms[0].roomType.name} · ฿${new Intl.NumberFormat("th-TH").format(r.totalAmount)}`,
+          msg: `✅ ${t("book.success")} ${r.code} · ${r.rooms.length} ${t("common.rooms")} ${r.rooms[0].roomType.name} · ฿${new Intl.NumberFormat("th-TH").format(r.totalAmount)}`,
         });
         setGuestName("");
         setGuestEmail("");
@@ -119,7 +126,7 @@ export default function BookPage() {
         setResult({ ok: false, msg: `❌ ${data.message}` });
       }
     } catch {
-      setResult({ ok: false, msg: "❌ เชื่อมต่อไม่สำเร็จ" });
+      setResult({ ok: false, msg: `❌ ${t("book.connErr")}` });
     } finally {
       setBusy(false);
     }
@@ -129,18 +136,18 @@ export default function BookPage() {
 
   return (
     <main className="container">
-      <h1 className="page-title">สร้างการจอง</h1>
-      <p className="page-sub">การจองทุกรายการจะผ่าน Reservation Engine ที่กัน overbooking แบบ atomic</p>
+      <h1 className="page-title">{t("book.title")}</h1>
+      <p className="page-sub">{t("book.subtitle")}</p>
 
       <div className="card" style={{ maxWidth: 560 }}>
         <div className="card-body">
           <form className="form-grid" onSubmit={submit}>
             <div>
-              <label>ประเภทห้อง</label>
+              <label>{t("book.roomType")}</label>
               <select value={roomTypeId} onChange={(e) => setRoomTypeId(e.target.value)}>
                 {meta?.roomTypes.map((rt) => (
                   <option key={rt.id} value={rt.id}>
-                    {rt.name} · ฿{new Intl.NumberFormat("th-TH").format(rt.basePrice)}/คืน · พัก {rt.maxOccupancy} คน
+                    {rt.name} · ฿{new Intl.NumberFormat("th-TH").format(rt.basePrice)}/{t("book.perNight")} · {t("book.occ")} {rt.maxOccupancy}
                   </option>
                 ))}
               </select>
@@ -148,49 +155,49 @@ export default function BookPage() {
 
             <div className="row-2">
               <div>
-                <label>เช็คอิน</label>
+                <label>{t("book.checkin")}</label>
                 <input type="date" value={checkin} onChange={(e) => setCheckin(e.target.value)} />
               </div>
               <div>
-                <label>เช็คเอาต์</label>
+                <label>{t("book.checkout")}</label>
                 <input type="date" value={checkout} min={addDaysLocal(checkin, 1)} onChange={(e) => setCheckout(e.target.value)} />
               </div>
             </div>
 
             <div>
-              <label>ชื่อผู้เข้าพัก</label>
-              <input value={guestName} onChange={(e) => setGuestName(e.target.value)} placeholder="เช่น สมชาย ใจดี" required />
+              <label>{t("book.guestName")}</label>
+              <input value={guestName} onChange={(e) => setGuestName(e.target.value)} placeholder={t("book.guestNamePh")} required />
             </div>
 
             <div className="row-2">
               <div>
-                <label>อีเมล (ไม่บังคับ)</label>
+                <label>{t("book.emailOpt")}</label>
                 <input type="email" value={guestEmail} onChange={(e) => setGuestEmail(e.target.value)} placeholder="guest@email.com" />
               </div>
               <div>
-                <label>เบอร์โทร (ไม่บังคับ)</label>
+                <label>{t("book.phoneOpt")}</label>
                 <input type="tel" value={guestPhone} onChange={(e) => setGuestPhone(e.target.value)} placeholder="08x-xxx-xxxx" />
               </div>
             </div>
 
             <div className="row-2">
               <div>
-                <label>จำนวนห้อง{selected?._count ? ` (ทั้งหมด ${selected._count.rooms})` : ""}</label>
+                <label>{t("book.roomsCount")}{selected?._count ? ` (${t("book.roomsAll")} ${selected._count.rooms})` : ""}</label>
                 <input type="number" min={1} max={selected?._count?.rooms ?? 20} value={units} onChange={(e) => setUnits(Math.max(1, Number(e.target.value)))} />
               </div>
               <div>
-                <label>ผู้เข้าพัก/ห้อง</label>
+                <label>{t("book.guestsPerRoom")}</label>
                 <input type="number" min={1} max={selected?.maxOccupancy ?? 4} value={guests} onChange={(e) => setGuests(Number(e.target.value))} />
               </div>
             </div>
 
             <div>
-              <label>ค่ามัดจำ (บาท · ไม่บังคับ)</label>
-              <input type="number" min={0} value={deposit} onChange={(e) => setDeposit(e.target.value)} placeholder="เช่น 500 · เว้นว่าง = ไม่เก็บมัดจำ" />
+              <label>{t("book.deposit")}</label>
+              <input type="number" min={0} value={deposit} onChange={(e) => setDeposit(e.target.value)} placeholder={t("book.depositPh")} />
             </div>
 
             <div>
-              <label>รูปบัตรประชาชน (ไม่บังคับ)</label>
+              <label>{t("book.idCard")}</label>
               <input
                 type="file"
                 accept="image/*"
@@ -200,21 +207,21 @@ export default function BookPage() {
                   const f = e.target.files?.[0];
                   if (!f) return;
                   setImgBusy(true);
-                  try { setIdCard(await resizeImage(f)); } catch { alert("อ่านรูปไม่สำเร็จ"); }
+                  try { setIdCard(await resizeImage(f)); } catch { alert(t("book.connErr")); }
                   setImgBusy(false);
                 }}
               />
-              {imgBusy && <span className="muted" style={{ fontSize: 12 }}>กำลังประมวลผลรูป...</span>}
+              {imgBusy && <span className="muted" style={{ fontSize: 12 }}>{t("book.processingImg")}</span>}
               {idCard && (
                 <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 8 }}>
-                  <img src={idCard} alt="บัตรประชาชน" style={{ maxWidth: 180, borderRadius: 8, border: "1px solid var(--border)" }} />
-                  <button type="button" className="btn btn-ghost" onClick={() => setIdCard("")} style={{ fontSize: 12, padding: "4px 10px", color: "var(--red)" }}>ลบรูป</button>
+                  <img src={idCard} alt="ID card" style={{ maxWidth: 180, borderRadius: 8, border: "1px solid var(--border)" }} />
+                  <button type="button" className="btn btn-ghost" onClick={() => setIdCard("")} style={{ fontSize: 12, padding: "4px 10px", color: "var(--red)" }}>{t("book.removeImg")}</button>
                 </div>
               )}
             </div>
 
             <button className="btn" type="submit" disabled={busy || !meta?.property}>
-              {busy ? "กำลังจอง..." : "ยืนยันการจอง"}
+              {busy ? t("book.submitting") : t("book.submit")}
             </button>
 
             {result && <div className={`alert ${result.ok ? "success" : "error"}`}>{result.msg}</div>}

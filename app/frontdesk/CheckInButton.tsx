@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { makeT, type Lang } from "@/lib/i18n";
 
-export default function CheckInButton({ reservationId, rooms }: { reservationId: string; rooms: { id: string; number: string }[] }) {
+export default function CheckInButton({ reservationId, lang = "th", rooms }: { reservationId: string; lang?: Lang; rooms: { id: string; number: string }[] }) {
   const router = useRouter();
+  const t = makeT(lang);
   const [busy, setBusy] = useState(false);
   const [roomId, setRoomId] = useState(rooms[0]?.id ?? "");
 
@@ -25,13 +27,13 @@ export default function CheckInButton({ reservationId, rooms }: { reservationId:
     <span style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
       {rooms.length > 0 ? (
         <select value={roomId} onChange={(e) => setRoomId(e.target.value)} style={{ padding: "4px 8px", fontSize: 13 }}>
-          {rooms.map((r) => <option key={r.id} value={r.id}>ห้อง {r.number}</option>)}
+          {rooms.map((r) => <option key={r.id} value={r.id}>{t("common.room")} {r.number}</option>)}
         </select>
       ) : (
-        <span className="muted" style={{ fontSize: 12 }}>ไม่มีห้องว่าง</span>
+        <span className="muted" style={{ fontSize: 12 }}>{t("fd.noFreeRoom")}</span>
       )}
       <button className="btn" onClick={checkin} disabled={busy} style={{ padding: "6px 14px" }}>
-        {busy ? "..." : "เช็คอิน"}
+        {busy ? "..." : t("fd.checkin")}
       </button>
     </span>
   );

@@ -2,6 +2,8 @@ import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { paymentStatus } from "@/lib/payments";
+import { makeT } from "@/lib/i18n";
+import { getLang } from "@/lib/i18n-server";
 import CancelButton from "./CancelButton";
 
 export const dynamic = "force-dynamic";
@@ -10,17 +12,10 @@ function money(n: number) {
   return new Intl.NumberFormat("th-TH", { maximumFractionDigits: 0 }).format(n);
 }
 
-const statusLabel: Record<string, string> = {
-  confirmed: "ยืนยันแล้ว",
-  pending: "รอดำเนินการ",
-  cancelled: "ยกเลิกแล้ว",
-  checked_in: "เช็คอินแล้ว",
-  checked_out: "เช็คเอาต์แล้ว",
-  no_show: "ไม่มาเข้าพัก",
-};
-
 export default async function ReservationsPage() {
   const user = await requireUser();
+  const lang = await getLang();
+  const t = makeT(lang);
   const list = await prisma.reservation.findMany({
     where: { property: { orgId: user.orgId } },
     include: { guest: true, channel: true, rooms: { include: { roomType: true } }, payments: true },
@@ -32,10 +27,10 @@ export default async function ReservationsPage() {
     <main className="container">
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div>
-          <h1 className="page-title">การจองทั้งหมด</h1>
-          <p className="page-sub">{list.length} รายการล่าสุด</p>
+          <h1 className="page-title">{t("res.title")}</h1>
+          <p className="page-sub">{list.length} {t("res.recent")}</p>
         </div>
-        <Link href="/book" className="btn">+ สร้างการจอง</Link>
+        <Link href="/book" className="btn">{t("res.create")}</Link>
       </div>
 
       <div className="card">
@@ -43,14 +38,14 @@ export default async function ReservationsPage() {
           <table className="table">
             <thead>
               <tr>
-                <th>รหัส</th>
-                <th>ผู้เข้าพัก</th>
-                <th>ห้อง</th>
-                <th>เช็คอิน → เช็คเอาต์</th>
-                <th>ช่องทาง</th>
-                <th>ยอดรวม</th>
-                <th>การชำระ</th>
-                <th>สถานะ</th>
+                <th>{t("res.code")}</th>
+                <th>{t("res.guest")}</th>
+                <th>{t("common.room")}</th>
+                <th>{t("res.dates")}</th>
+                <th>{t("res.channel")}</th>
+                <th>{t("res.total")}</th>
+                <th>{t("res.payment")}</th>
+                <th>{t("res.status")}</th>
                 <th></th>
               </tr>
             </thead>
@@ -58,7 +53,7 @@ export default async function ReservationsPage() {
               {list.length === 0 && (
                 <tr>
                   <td colSpan={9} className="muted" style={{ textAlign: "center", padding: 32 }}>
-                    ยังไม่มีการจอง — <Link href="/book" style={{ color: "var(--primary)" }}>สร้างรายการแรก</Link>
+                    {t("res.empty")}
                   </td>
                 </tr>
               )}
@@ -84,16 +79,16 @@ export default async function ReservationsPage() {
                     <td>฿{money(r.totalAmount)}</td>
                     <td>
                       <span className={`badge ${pay.key === "paid" ? "confirmed" : pay.key === "partial" ? "pending" : "cancelled"}`}>
-                        {pay.label}
+                        {t(`pay.${pay.key}`)}
                       </span>
                     </td>
                     <td>
                       <span className={`badge ${r.status === "cancelled" ? "cancelled" : r.status === "pending" ? "pending" : "confirmed"}`}>
-                        {statusLabel[r.status] ?? r.status}
+                        {t(`status.${r.status}`)}
                       </span>
                     </td>
                     <td style={{ textAlign: "right" }}>
-                      {r.status !== "cancelled" && <CancelButton id={r.id} otaLocked={!!r.externalRef} paidAmount={paid} />}
+                      {r.status !== "cancelled" && <CancelButton id={r.id} lang={lang} otaLocked={!!r.externalRef} paidAmount={paid} />}
                     </td>
                   </tr>
                 );

@@ -2,16 +2,18 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { makeT, type Lang } from "@/lib/i18n";
 
-export default function CancelButton({ id, otaLocked = false, paidAmount = 0 }: { id: string; otaLocked?: boolean; paidAmount?: number }) {
+export default function CancelButton({ id, lang = "th", otaLocked = false, paidAmount = 0 }: { id: string; lang?: Lang; otaLocked?: boolean; paidAmount?: number }) {
   const [busy, setBusy] = useState(false);
   const router = useRouter();
+  const t = makeT(lang);
 
   // การจองจาก OTA → ห้ามยกเลิกในระบบเรา (เสี่ยง overbooking) ต้องยกเลิกที่ OTA
   if (otaLocked) {
     return (
-      <span className="muted" style={{ fontSize: 13, whiteSpace: "nowrap" }} title="การจองนี้มาจาก OTA — ต้องยกเลิกที่ OTA เท่านั้น">
-        🔒 ยกเลิกที่ OTA
+      <span className="muted" style={{ fontSize: 13, whiteSpace: "nowrap" }} title="OTA booking — cancel on the OTA only">
+        {t("res.cancelOTA")}
       </span>
     );
   }
@@ -44,7 +46,7 @@ export default function CancelButton({ id, otaLocked = false, paidAmount = 0 }: 
 
   return (
     <button className="btn btn-ghost" onClick={cancel} disabled={busy}>
-      {busy ? "..." : "ยกเลิก"}
+      {busy ? "..." : t("res.cancel")}
     </button>
   );
 }

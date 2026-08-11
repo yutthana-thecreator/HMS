@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { makeT, type Lang } from "@/lib/i18n";
 
-export default function RoomStatusButton({ id, status }: { id: string; status: string }) {
+export default function RoomStatusButton({ id, status, lang = "th" }: { id: string; status: string; lang?: Lang }) {
   const router = useRouter();
+  const t = makeT(lang);
   const [busy, setBusy] = useState(false);
 
   async function set(next: string) {
@@ -20,21 +22,21 @@ export default function RoomStatusButton({ id, status }: { id: string; status: s
     else alert(d.message ?? "อัปเดตไม่สำเร็จ");
   }
 
-  if (status === "occupied") return <span className="muted" style={{ fontSize: 12 }}>มีแขกพัก</span>;
+  if (status === "occupied") return <span className="muted" style={{ fontSize: 12 }}>{t("hk.hasGuest")}</span>;
 
   const btn = { padding: "5px 12px", fontSize: 13 } as const;
   return (
     <span style={{ display: "inline-flex", gap: 6, flexWrap: "wrap" }}>
       {status === "dirty" && (
-        <button className="btn" onClick={() => set("clean")} disabled={busy} style={btn}>✓ ทำความสะอาดแล้ว</button>
+        <button className="btn" onClick={() => set("clean")} disabled={busy} style={btn}>{t("hk.markClean")}</button>
       )}
       {status === "clean" && (
-        <button className="btn btn-ghost" onClick={() => set("dirty")} disabled={busy} style={btn}>แจ้งสกปรก</button>
+        <button className="btn btn-ghost" onClick={() => set("dirty")} disabled={busy} style={btn}>{t("hk.markDirty")}</button>
       )}
       {status === "out_of_order" ? (
-        <button className="btn btn-ghost" onClick={() => set("clean")} disabled={busy} style={{ ...btn, color: "var(--green)" }}>เปิดใช้งาน</button>
+        <button className="btn btn-ghost" onClick={() => set("clean")} disabled={busy} style={{ ...btn, color: "var(--green)" }}>{t("hk.openRoom")}</button>
       ) : (
-        <button className="btn btn-ghost" onClick={() => set("out_of_order")} disabled={busy} style={{ ...btn, color: "var(--red)" }}>ปิดปรับปรุง</button>
+        <button className="btn btn-ghost" onClick={() => set("out_of_order")} disabled={busy} style={{ ...btn, color: "var(--red)" }}>{t("hk.closeRoom")}</button>
       )}
     </span>
   );
