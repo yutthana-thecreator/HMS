@@ -3,9 +3,11 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { PAYMENT_METHODS } from "@/lib/payments";
+import { makeT, type Lang } from "@/lib/i18n";
 
-export default function PaymentForm({ reservationId, remaining }: { reservationId: string; remaining: number }) {
+export default function PaymentForm({ reservationId, remaining, lang = "th" }: { reservationId: string; remaining: number; lang?: Lang }) {
   const router = useRouter();
+  const t = makeT(lang);
   const [amount, setAmount] = useState(remaining > 0 ? String(remaining) : "");
   const [method, setMethod] = useState("cash");
   const [note, setNote] = useState("");
@@ -33,26 +35,26 @@ export default function PaymentForm({ reservationId, remaining }: { reservationI
 
   return (
     <form onSubmit={submit} style={{ borderTop: "1px solid var(--border)", paddingTop: 14, marginTop: 4 }}>
-      <div style={{ fontWeight: 600, marginBottom: 10 }}>+ บันทึกการชำระเงิน</div>
+      <div style={{ fontWeight: 600, marginBottom: 10 }}>{t("pf.add")}</div>
       <div className="row-2" style={{ marginBottom: 10 }}>
         <div>
-          <label>จำนวนเงิน (บาท)</label>
+          <label>{t("pf.amount")}</label>
           <input type="number" min={1} step={1} value={amount} onChange={(e) => setAmount(e.target.value)} required />
         </div>
         <div>
-          <label>วิธีชำระ</label>
+          <label>{t("pf.method")}</label>
           <select value={method} onChange={(e) => setMethod(e.target.value)}>
-            {Object.entries(PAYMENT_METHODS).map(([k, v]) => (
-              <option key={k} value={k}>{v}</option>
+            {Object.keys(PAYMENT_METHODS).filter((k) => k !== "refund").map((k) => (
+              <option key={k} value={k}>{t(`pmethod.${k}`)}</option>
             ))}
           </select>
         </div>
       </div>
       <div style={{ marginBottom: 10 }}>
-        <label>หมายเหตุ (ไม่บังคับ)</label>
-        <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="เช่น มัดจำ 50%" />
+        <label>{t("pf.noteOpt")}</label>
+        <input value={note} onChange={(e) => setNote(e.target.value)} placeholder={t("pf.notePh")} />
       </div>
-      <button className="btn" disabled={busy}>{busy ? "กำลังบันทึก..." : "บันทึกการชำระ"}</button>
+      <button className="btn" disabled={busy}>{busy ? t("pf.saving") : t("pf.save")}</button>
       {msg && <div className={`alert ${msg.ok ? "success" : "error"}`}>{msg.text}</div>}
     </form>
   );
