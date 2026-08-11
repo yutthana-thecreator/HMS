@@ -31,13 +31,21 @@ export default function BookPage() {
 
   useEffect(() => {
     fetch("/api/room-types")
-      .then((r) => r.json())
-      .then((m: Meta) => {
+      .then(async (r) => {
+        if (r.status === 401) {
+          window.location.href = "/login"; // session หมด → ไปล็อกอินใหม่ (กัน crash)
+          return null;
+        }
+        return r.json();
+      })
+      .then((m: Meta | null) => {
+        if (!m || !Array.isArray(m.roomTypes)) return;
         setMeta(m);
         if (m.roomTypes[0]) setRoomTypeId(m.roomTypes[0].id);
-        const direct = m.channels.find((c) => c.type === "direct");
+        const direct = (m.channels ?? []).find((c) => c.type === "direct");
         if (direct) setChannelId(direct.id);
-      });
+      })
+      .catch(() => {});
   }, []);
 
   async function submit(e: React.FormEvent) {
