@@ -1,13 +1,10 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-
 export default function LanguageToggle({ lang }: { lang: "th" | "en" }) {
-  const router = useRouter();
   function set(l: "th" | "en") {
     if (l === lang) return;
     document.cookie = `lang=${l}; path=/; max-age=${60 * 60 * 24 * 365}`;
-    router.refresh();
+    window.location.reload(); // reload เต็ม → เซิร์ฟเวอร์อ่าน cookie ใหม่แน่นอน
   }
   const item = (active: boolean) => ({
     padding: "2px 8px",
