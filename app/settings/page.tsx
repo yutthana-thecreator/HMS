@@ -8,6 +8,8 @@ import ChannelWizard from "./ChannelWizard";
 import RoomTypeRow from "./RoomTypeRow";
 import EmailPanel from "./EmailPanel";
 import { emailConfigured } from "@/lib/email";
+import { makeT } from "@/lib/i18n";
+import { getLang } from "@/lib/i18n-server";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +29,7 @@ function Meter({ used, limit }: { used: number; limit: number }) {
 
 export default async function SettingsPage() {
   const user = await requireUser();
+  const t = makeT(await getLang());
   const org = user.organization;
   const plan = getPlan(org.plan);
 
@@ -61,47 +64,47 @@ export default async function SettingsPage() {
 
   return (
     <main className="container">
-      <h1 className="page-title">ตั้งค่า & แพ็กเกจ</h1>
+      <h1 className="page-title">{t("set.title")}</h1>
       <p className="page-sub">{org.name}</p>
 
       {/* ---- แพ็กเกจปัจจุบัน + usage ---- */}
       <div className="card" style={{ marginBottom: 24 }}>
         <div className="card-head">
-          <h2>แพ็กเกจปัจจุบัน: {plan.name}</h2>
+          <h2>{t("set.currentPlan")}: {plan.name}</h2>
           <span className={`plan-badge ${org.planStatus === "trialing" ? "trial" : ""}`}>
             {org.planStatus === "trialing"
-              ? `ทดลองใช้ · เหลือ ${trialDaysLeft} วัน`
+              ? `${t("set.trialLeft")} ${trialDaysLeft} ${t("set.trialDays")}`
               : org.planStatus === "active"
-                ? "ใช้งานอยู่"
+                ? t("set.active")
                 : org.planStatus}
           </span>
         </div>
         <div className="card-body">
           <div className="stat-grid" style={{ marginBottom: 0 }}>
             <div>
-              <div className="label" style={{ fontSize: 13, color: "var(--text-muted)", fontWeight: 600 }}>ห้องพัก</div>
+              <div className="label" style={{ fontSize: 13, color: "var(--text-muted)", fontWeight: 600 }}>{t("set.rooms")}</div>
               <div style={{ fontWeight: 700, marginTop: 4 }}>{roomCount} / {plan.maxRooms}</div>
               <Meter used={roomCount} limit={plan.maxRooms} />
             </div>
             <div>
-              <div className="label" style={{ fontSize: 13, color: "var(--text-muted)", fontWeight: 600 }}>ที่พัก (Property)</div>
+              <div className="label" style={{ fontSize: 13, color: "var(--text-muted)", fontWeight: 600 }}>{t("set.properties")}</div>
               <div style={{ fontWeight: 700, marginTop: 4 }}>{propCount} / {plan.maxProperties}</div>
               <Meter used={propCount} limit={plan.maxProperties} />
             </div>
             <div>
-              <div className="label" style={{ fontSize: 13, color: "var(--text-muted)", fontWeight: 600 }}>ผู้ใช้งาน (Staff)</div>
+              <div className="label" style={{ fontSize: 13, color: "var(--text-muted)", fontWeight: 600 }}>{t("set.staff")}</div>
               <div style={{ fontWeight: 700, marginTop: 4 }}>{staffCount} / {plan.staffSeats}</div>
               <Meter used={staffCount} limit={plan.staffSeats} />
             </div>
             <div>
-              <div className="label" style={{ fontSize: 13, color: "var(--text-muted)", fontWeight: 600 }}>Channel Manager</div>
-              <div style={{ fontWeight: 700, marginTop: 4 }}>{plan.channelManager ? "✓ ใช้ได้" : "✗ (เฉพาะ iCal)"}</div>
+              <div className="label" style={{ fontSize: 13, color: "var(--text-muted)", fontWeight: 600 }}>{t("set.cm")}</div>
+              <div style={{ fontWeight: 700, marginTop: 4 }}>{plan.channelManager ? t("set.cmYes") : t("set.cmNo")}</div>
             </div>
           </div>
           {org.currentPeriodEnd && org.planStatus === "active" && (
             <div style={{ marginTop: 16 }}>
               <span className="muted" style={{ fontSize: 13 }}>
-                ใช้งานได้ถึง: <b>{org.currentPeriodEnd.toISOString().slice(0, 10)}</b> ({org.billingCycle === "yearly" ? "รายปี" : "รายเดือน"})
+                {t("set.validUntil")}: <b>{org.currentPeriodEnd.toISOString().slice(0, 10)}</b> ({org.billingCycle === "yearly" ? t("set.yearly") : t("set.monthly")})
               </span>
             </div>
           )}
@@ -110,7 +113,7 @@ export default async function SettingsPage() {
 
       {/* ---- เลือก/เปลี่ยนแพ็กเกจ (PromptPay) ---- */}
       <div className="card" style={{ marginBottom: 24 }}>
-        <div className="card-head"><h2>แพ็กเกจทั้งหมด</h2></div>
+        <div className="card-head"><h2>{t("set.allPlans")}</h2></div>
         <div className="card-body">
           <PromptPayBilling
             plans={Object.values(PLANS).map((p) => ({
@@ -128,20 +131,20 @@ export default async function SettingsPage() {
             yearlyMonths={YEARLY_MONTHS_CHARGED}
           />
           <p className="muted" style={{ fontSize: 13, marginTop: 14 }}>
-            💳 ชำระผ่าน PromptPay — สแกน QR จ่ายตามยอด แล้วผู้ดูแลยืนยัน · รายปีประหยัด {yearlyDiscountPct()}%
+            {t("set.ppNote")} {yearlyDiscountPct()}%
           </p>
         </div>
       </div>
 
       {/* ---- ประเภทห้อง ---- */}
       <div className="card" style={{ marginBottom: 24 }}>
-        <div className="card-head"><h2>ประเภทห้อง ({property?.name ?? "-"})</h2></div>
+        <div className="card-head"><h2>{t("set.roomTypes")} ({property?.name ?? "-"})</h2></div>
         <div className="card-body">
           {roomTypes.length > 0 ? (
             <div className="cal-wrap" style={{ marginBottom: 20 }}>
               <table className="table">
                 <thead>
-                  <tr><th>ชื่อ</th><th>รหัส</th><th>ห้อง</th><th>ราคา/คืน (฿)</th><th>กัน OTA</th><th></th></tr>
+                  <tr><th>{t("set.rtName")}</th><th>{t("set.rtCode")}</th><th>{t("common.room")}</th><th>{t("set.rtPrice")}</th><th>{t("set.rtBuffer")}</th><th></th></tr>
                 </thead>
                 <tbody>
                   {roomTypes.map((rt) => (
@@ -151,11 +154,11 @@ export default async function SettingsPage() {
               </table>
             </div>
           ) : (
-            <p className="muted" style={{ marginBottom: 16 }}>ยังไม่มีประเภทห้อง — เพิ่มด้านล่างเพื่อเริ่มรับการจอง</p>
+            <p className="muted" style={{ marginBottom: 16 }}>{t("set.noRoomTypes")}</p>
           )}
           {roomTypes.length > 0 && (
             <p className="muted" style={{ fontSize: 13, marginTop: -8, marginBottom: 16 }}>
-              💡 <b>กัน OTA (buffer)</b> = กันห้องไว้ไม่ขายบน OTA (เช่น 1 = กันห้องสุดท้าย) → กัน overbooking · จองตรงยังขายได้ · 0 = ขายเต็ม
+              💡 <b>{t("set.rtBuffer")} (buffer)</b> = {t("set.bufferNote")}
             </p>
           )}
           <AddRoomTypeForm roomsUsed={roomCount} maxRooms={plan.maxRooms} />
@@ -164,10 +167,10 @@ export default async function SettingsPage() {
 
       {/* ---- เชื่อม OTA อัตโนมัติ (iCal) ---- */}
       <div className="card" style={{ marginBottom: 24 }}>
-        <div className="card-head"><h2>เชื่อม OTA อัตโนมัติ (iCal)</h2></div>
+        <div className="card-head"><h2>{t("set.icalTitle")}</h2></div>
         <div className="card-body">
           {roomTypes.length === 0 ? (
-            <p className="muted">เพิ่มประเภทห้องก่อน แล้วจึงเชื่อม OTA ได้</p>
+            <p className="muted">{t("set.addRoomFirst")}</p>
           ) : (
             <IcalManager
               roomTypes={roomTypes.map((rt) => ({ id: rt.id, name: rt.name, code: rt.code }))}
@@ -179,7 +182,7 @@ export default async function SettingsPage() {
 
       {/* ---- อีเมลยืนยันจอง ---- */}
       <div className="card" style={{ marginBottom: 24 }}>
-        <div className="card-head"><h2>อีเมลยืนยันการจอง</h2></div>
+        <div className="card-head"><h2>{t("set.emailTitle")}</h2></div>
         <div className="card-body">
           <EmailPanel configured={emailConfigured()} />
         </div>
@@ -187,7 +190,7 @@ export default async function SettingsPage() {
 
       {/* ---- Channel Manager (Channex) ---- */}
       <div className="card" style={{ marginBottom: 24 }}>
-        <div className="card-head"><h2>Channel Manager — เชื่อม OTA (เรียลไทม์)</h2></div>
+        <div className="card-head"><h2>{t("set.cmTitle")}</h2></div>
         <div className="card-body">
           <ChannelWizard />
         </div>
@@ -195,7 +198,7 @@ export default async function SettingsPage() {
 
       {/* ---- ช่องทาง OTA ---- */}
       <div className="card">
-        <div className="card-head"><h2>ช่องทางการจอง (OTA)</h2></div>
+        <div className="card-head"><h2>{t("set.otaTitle")}</h2></div>
         <div className="card-body">
           {channels.length > 0 ? (
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>

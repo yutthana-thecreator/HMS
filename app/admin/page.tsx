@@ -3,6 +3,8 @@ import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { isAdmin } from "@/lib/auth";
 import { getPlan } from "@/lib/plans";
+import { makeT } from "@/lib/i18n";
+import { getLang } from "@/lib/i18n-server";
 import AdminLogout from "./AdminLogout";
 import PaymentReview from "./PaymentReview";
 import AdminOrgActions from "./AdminOrgActions";
@@ -13,15 +15,9 @@ function money(n: number) {
   return new Intl.NumberFormat("th-TH", { maximumFractionDigits: 0 }).format(n);
 }
 
-const statusTH: Record<string, string> = {
-  trialing: "ทดลองใช้",
-  active: "จ่ายเงินแล้ว",
-  past_due: "ค้างชำระ",
-  canceled: "ยกเลิก",
-};
-
 export default async function AdminPage() {
   if (!(await isAdmin())) redirect("/login");
+  const t = makeT(await getLang());
 
   const orgs = await prisma.organization.findMany({
     orderBy: { createdAt: "desc" },
@@ -60,12 +56,12 @@ export default async function AdminPage() {
     <main className="container">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start" }}>
         <div>
-          <h1 className="page-title">Admin · แพลตฟอร์ม</h1>
-          <p className="page-sub">ภาพรวมทุกโรงแรมในระบบ</p>
+          <h1 className="page-title">{t("adm.title")}</h1>
+          <p className="page-sub">{t("adm.subtitle")}</p>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
           <Link className="btn btn-ghost" href="/admin/flow" style={{ color: "var(--primary)", borderColor: "var(--border)" }}>
-            📊 Flowchart ระบบ
+            {t("adm.flowchart")}
           </Link>
           <AdminLogout />
         </div>
@@ -73,19 +69,19 @@ export default async function AdminPage() {
 
       <div className="stat-grid">
         <div className="stat-card">
-          <div className="label">โรงแรมทั้งหมด</div>
+          <div className="label">{t("adm.totalHotels")}</div>
           <div className="value">{orgs.length}</div>
         </div>
         <div className="stat-card">
-          <div className="label">จ่ายเงินอยู่ (active)</div>
+          <div className="label">{t("adm.activePaying")}</div>
           <div className="value">{activeCount}</div>
         </div>
         <div className="stat-card">
-          <div className="label">ทดลองใช้</div>
+          <div className="label">{t("adm.trialing")}</div>
           <div className="value">{trialCount}</div>
         </div>
         <div className="stat-card">
-          <div className="label">รายได้/เดือน (MRR)</div>
+          <div className="label">{t("adm.mrr")}</div>
           <div className="value">฿{money(mrr)}</div>
         </div>
       </div>
@@ -93,22 +89,22 @@ export default async function AdminPage() {
       {/* ---- รอยืนยันการชำระเงิน (PromptPay) ---- */}
       <div className="card" style={{ marginBottom: 24, borderColor: pendingPayments.length ? "var(--primary)" : undefined }}>
         <div className="card-head">
-          <h2>💰 รอยืนยันการชำระเงิน {pendingPayments.length > 0 && <span className="badge pending">{pendingPayments.length}</span>}</h2>
+          <h2>💰 {t("adm.pendingPay")} {pendingPayments.length > 0 && <span className="badge pending">{pendingPayments.length}</span>}</h2>
         </div>
         <div className="cal-wrap">
           {pendingPayments.length === 0 ? (
-            <p className="muted" style={{ padding: 20, margin: 0 }}>ไม่มีคำขอรอยืนยัน</p>
+            <p className="muted" style={{ padding: 20, margin: 0 }}>{t("adm.noPending")}</p>
           ) : (
             <table className="table">
               <thead>
-                <tr><th>โรงแรม</th><th>แพ็กเกจ</th><th>รอบ</th><th>ยอด</th><th>แจ้งเมื่อ</th><th></th></tr>
+                <tr><th>{t("adm.hotel")}</th><th>{t("adm.plan")}</th><th>{t("adm.cycle")}</th><th>{t("adm.amount")}</th><th>{t("adm.notifiedAt")}</th><th></th></tr>
               </thead>
               <tbody>
                 {pendingPayments.map((pr) => (
                   <tr key={pr.id}>
                     <td><strong>{pr.organization.name}</strong></td>
                     <td>{getPlan(pr.plan).name}</td>
-                    <td>{pr.cycle === "yearly" ? "รายปี" : "รายเดือน"}</td>
+                    <td>{pr.cycle === "yearly" ? t("set.yearly") : t("set.monthly")}</td>
                     <td style={{ fontWeight: 700 }}>฿{money(pr.amount)}</td>
                     <td className="mono">{pr.createdAt.toISOString().slice(0, 16).replace("T", " ")}</td>
                     <td style={{ textAlign: "right" }}><PaymentReview id={pr.id} /></td>
@@ -121,12 +117,12 @@ export default async function AdminPage() {
       </div>
 
       <div className="card">
-        <div className="card-head"><h2>รายชื่อโรงแรม</h2></div>
+        <div className="card-head"><h2>{t("adm.hotelList")}</h2></div>
         <div className="cal-wrap">
           <table className="table">
             <thead>
               <tr>
-                <th>โรงแรม</th><th>แพ็กเกจ</th><th>สถานะ</th><th>ห้อง</th><th>การจอง</th><th>ผู้ใช้</th><th>หมดอายุ</th><th>สมัครเมื่อ</th><th>จัดการ</th>
+                <th>{t("adm.hotel")}</th><th>{t("adm.plan")}</th><th>{t("adm.statusCol")}</th><th>{t("adm.roomsCol")}</th><th>{t("adm.bookingsCol")}</th><th>{t("adm.usersCol")}</th><th>{t("adm.expiry")}</th><th>{t("adm.signupAt")}</th><th>{t("adm.manage")}</th>
               </tr>
             </thead>
             <tbody>
@@ -136,10 +132,10 @@ export default async function AdminPage() {
                   <td>{plan.name}</td>
                   <td>
                     {org.suspended ? (
-                      <span className="badge cancelled">ระงับ</span>
+                      <span className="badge cancelled">{t("adm.suspended")}</span>
                     ) : (
                       <span className={`badge ${org.planStatus === "active" ? "confirmed" : org.planStatus === "trialing" ? "pending" : "cancelled"}`}>
-                        {statusTH[org.planStatus] ?? org.planStatus}
+                        {t(`st.${org.planStatus}`)}
                       </span>
                     )}
                   </td>
@@ -158,25 +154,25 @@ export default async function AdminPage() {
 
       {/* ---- ประวัติการชำระเงิน ---- */}
       <div className="card" style={{ marginTop: 24 }}>
-        <div className="card-head"><h2>ประวัติการชำระเงิน</h2></div>
+        <div className="card-head"><h2>{t("adm.payHistory")}</h2></div>
         <div className="cal-wrap">
           {paymentHistory.length === 0 ? (
-            <p className="muted" style={{ padding: 20, margin: 0 }}>ยังไม่มีประวัติ</p>
+            <p className="muted" style={{ padding: 20, margin: 0 }}>{t("adm.noHistory")}</p>
           ) : (
             <table className="table">
               <thead>
-                <tr><th>โรงแรม</th><th>แพ็กเกจ</th><th>รอบ</th><th>ยอด</th><th>สถานะ</th><th>ดำเนินการเมื่อ</th><th>โดย</th></tr>
+                <tr><th>{t("adm.hotel")}</th><th>{t("adm.plan")}</th><th>{t("adm.cycle")}</th><th>{t("adm.amount")}</th><th>{t("adm.statusCol")}</th><th>{t("adm.reviewedAt")}</th><th>{t("adm.by")}</th></tr>
               </thead>
               <tbody>
                 {paymentHistory.map((pr) => (
                   <tr key={pr.id}>
                     <td>{pr.organization.name}</td>
                     <td>{getPlan(pr.plan).name}</td>
-                    <td>{pr.cycle === "yearly" ? "รายปี" : "รายเดือน"}</td>
+                    <td>{pr.cycle === "yearly" ? t("set.yearly") : t("set.monthly")}</td>
                     <td style={{ fontWeight: 600 }}>฿{money(pr.amount)}</td>
                     <td>
                       <span className={`badge ${pr.status === "confirmed" ? "confirmed" : "cancelled"}`}>
-                        {pr.status === "confirmed" ? "ยืนยันแล้ว" : "ปฏิเสธ"}
+                        {pr.status === "confirmed" ? t("adm.confirmed") : t("adm.rejected")}
                       </span>
                     </td>
                     <td className="mono">{pr.reviewedAt ? pr.reviewedAt.toISOString().slice(0, 16).replace("T", " ") : "-"}</td>
