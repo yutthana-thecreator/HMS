@@ -9,7 +9,8 @@ import { prisma } from "./db";
 
 const COOKIE = "hms_session";
 const ADMIN_COOKIE = "hms_admin";
-const SESSION_DAYS = 30;
+// idle timeout แบบ sliding — หลุดเมื่อไม่มีกิจกรรมเกินช่วงนี้ (หรือปิดเบราว์เซอร์ เพราะ cookie เป็น session cookie)
+const IDLE_MS = 4 * 60 * 60 * 1000; // 4 ชั่วโมง
 
 // ---------- password ----------
 export function hashPassword(password: string): string {
@@ -29,7 +30,7 @@ export function verifyPassword(password: string, stored: string): boolean {
 // ---------- session ----------
 export async function createSession(userId: string): Promise<void> {
   const token = randomBytes(32).toString("hex");
-  const expiresAt = new Date(Date.now() + SESSION_DAYS * 24 * 3600 * 1000);
+  const expiresAt = new Date(Date.now() + IDLE_MS);
   await prisma.session.create({ data: { token, userId, expiresAt } });
   const jar = await cookies();
   jar.delete(ADMIN_COOKIE); // ล็อกอินโรงแรม → เคลียร์ admin cookie อัตโนมัติ (กันสับสน)
@@ -61,6 +62,14 @@ export async function getCurrentUser() {
     include: { user: { include: { organization: true } } },
   });
   if (!session || session.expiresAt < new Date() || !session.user.isActive) return null;
+
+  // sliding idle: ตั้งวันหมดอายุ = ตอนนี้ + 4 ชม. เสมอ (throttle เขียน DB เมื่อคลาดเกิน 10 นาที)
+  // → ต่ออายุเมื่อมีกิจกรรม + cap session เก่าที่ยาวเกินให้เหลือ 4 ชม.
+  const now = Date.now();
+  const target = now + IDLE_MS;
+  if (Math.abs(session.expiresAt.getTime() - target) > 10 * 60 * 1000) {
+    prisma.session.update({ where: { token }, data: { expiresAt: new Date(target) } }).catch(() => {});
+  }
   return session.user; // { ..., organization }
 }
 
