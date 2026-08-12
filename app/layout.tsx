@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { headers } from "next/headers";
 import "./globals.css";
 import TopNav from "./TopNav";
@@ -45,7 +46,13 @@ export default async function RootLayout({
               />
             )}
             {isAdminArea && <span className="muted" style={{ fontSize: 14 }}>{t("nav.admin")}</span>}
-            <div style={{ marginLeft: "auto" }}>
+            <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 16 }}>
+              {!user && !isAdminArea && (
+                <div className="header-cta">
+                  <Link href="/login" className="signin">{t("auth.signinBtn")}</Link>
+                  <Link href="/signup" className="btn">{lang === "en" ? "Start free" : "เริ่มใช้ฟรี"}</Link>
+                </div>
+              )}
               <LanguageToggle lang={lang} />
             </div>
           </nav>

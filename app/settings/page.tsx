@@ -29,7 +29,8 @@ function Meter({ used, limit }: { used: number; limit: number }) {
 
 export default async function SettingsPage() {
   const user = await requireUser();
-  const t = makeT(await getLang());
+  const lang = await getLang();
+  const t = makeT(lang);
   const org = user.organization;
   const plan = getPlan(org.plan);
 
@@ -129,6 +130,7 @@ export default async function SettingsPage() {
             pending={pendingReq}
             yearlyDiscount={yearlyDiscountPct()}
             yearlyMonths={YEARLY_MONTHS_CHARGED}
+            lang={lang}
           />
           <p className="muted" style={{ fontSize: 13, marginTop: 14 }}>
             {t("set.ppNote")} {yearlyDiscountPct()}%
@@ -148,7 +150,7 @@ export default async function SettingsPage() {
                 </thead>
                 <tbody>
                   {roomTypes.map((rt) => (
-                    <RoomTypeRow key={rt.id} id={rt.id} name={rt.name} code={rt.code} units={rt._count.rooms} price={rt.basePrice} buffer={rt.otaBuffer} />
+                    <RoomTypeRow key={rt.id} id={rt.id} name={rt.name} code={rt.code} units={rt._count.rooms} price={rt.basePrice} buffer={rt.otaBuffer} lang={lang} />
                   ))}
                 </tbody>
               </table>
@@ -161,7 +163,7 @@ export default async function SettingsPage() {
               💡 <b>{t("set.rtBuffer")} (buffer)</b> = {t("set.bufferNote")}
             </p>
           )}
-          <AddRoomTypeForm roomsUsed={roomCount} maxRooms={plan.maxRooms} />
+          <AddRoomTypeForm roomsUsed={roomCount} maxRooms={plan.maxRooms} lang={lang} />
         </div>
       </div>
 
@@ -175,6 +177,7 @@ export default async function SettingsPage() {
             <IcalManager
               roomTypes={roomTypes.map((rt) => ({ id: rt.id, name: rt.name, code: rt.code }))}
               feeds={icalFeeds.map((f) => ({ id: f.id, label: f.label, roomTypeName: f.roomType.name, url: f.url, lastResult: f.lastResult }))}
+              lang={lang}
             />
           )}
         </div>
@@ -184,7 +187,7 @@ export default async function SettingsPage() {
       <div className="card" style={{ marginBottom: 24 }}>
         <div className="card-head"><h2>{t("set.emailTitle")}</h2></div>
         <div className="card-body">
-          <EmailPanel configured={emailConfigured()} />
+          <EmailPanel configured={emailConfigured()} lang={lang} />
         </div>
       </div>
 
@@ -192,7 +195,7 @@ export default async function SettingsPage() {
       <div className="card" style={{ marginBottom: 24 }}>
         <div className="card-head"><h2>{t("set.cmTitle")}</h2></div>
         <div className="card-body">
-          <ChannelWizard />
+          <ChannelWizard lang={lang} />
         </div>
       </div>
 
@@ -207,7 +210,7 @@ export default async function SettingsPage() {
               ))}
             </div>
           ) : (
-            <p className="muted">ยังไม่มีช่องทาง — การเชื่อม Airbnb/Booking.com จะเพิ่มในเฟส Channel Integration</p>
+            <p className="muted">{t("set.noChannels")}</p>
           )}
         </div>
       </div>

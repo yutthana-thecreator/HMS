@@ -6,7 +6,9 @@ import type { NextRequest } from "next/server";
 export function middleware(req: NextRequest) {
   const session = req.cookies.get("hms_session")?.value;
   const admin = req.cookies.get("hms_admin")?.value;
-  if (!session && !admin) {
+  // หน้าแรก "/" เปิด public (Landing การตลาด) — คนล็อกอินจะเห็นแดชบอร์ดผ่าน page.tsx เอง
+  const isPublic = req.nextUrl.pathname === "/";
+  if (!session && !admin && !isPublic) {
     const url = new URL("/login", req.url);
     return NextResponse.redirect(url);
   }

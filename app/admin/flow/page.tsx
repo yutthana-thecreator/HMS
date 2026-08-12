@@ -1,11 +1,12 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { isAdmin } from "@/lib/auth";
+import { getLang } from "@/lib/i18n-server";
 import Mermaid from "./Mermaid";
 
 export const dynamic = "force-dynamic";
 
-const DIAGRAMS = [
+const DIAGRAMS_TH = [
   {
     id: "flow-overview",
     step: "ภาพที่ 1",
@@ -87,17 +88,102 @@ const DIAGRAMS = [
   },
 ];
 
+const DIAGRAMS_EN = [
+  {
+    id: "flow-overview",
+    step: "Diagram 1",
+    title: "System overview",
+    desc: "Every booking channel flows into a “single point” (Reservation Engine + central database), then fans back out",
+    chart: `flowchart TB
+  subgraph SRC["Booking channels"]
+    A["OTA: Airbnb / Booking / Agoda"]
+    D["Direct / Front desk"]
+  end
+  A <-->|"Channel Manager real-time<br/>+ iCal (backup)"| ADP["Channel Adapter"]
+  D --> ENG
+  ADP --> ENG["Reservation Engine<br/>anti-overbooking (atomic)"]
+  ENG --> DB[("Supabase / PostgreSQL<br/>single central database")]
+  DB --> DASH["Dashboard + availability calendar"]
+  DB --> PAY["Payments + payment status"]
+  ENG -->|"push availability (minus buffer) + rates"| ADP
+  ENG --> MAIL["Email: booking confirmation + check-in reminder"]`,
+  },
+  {
+    id: "flow-overbooking",
+    step: "Diagram 2",
+    title: "Booking + anti-overbooking",
+    desc: "Atomic stock deduction in a transaction — if any single night is full, roll back everything, then sync out",
+    chart: `flowchart TD
+  S["Receive booking request (all channels)"] --> T["Begin transaction"]
+  T --> U["Deduct stock every night<br/>condition unitsSold+1 ≤ unitsTotal"]
+  U --> C{"All nights ok?"}
+  C -->|"No (a night is full)"| R["Rollback → report sold out"]
+  C -->|"Yes"| I["Create booking"]
+  I --> K["Commit"]
+  K --> P["push availability (minus buffer) + rates → OTA"]
+  K --> M["Confirmation email → guest"]`,
+  },
+  {
+    id: "flow-channel",
+    step: "Diagram 3",
+    title: "Two-way Channel Manager (real-time)",
+    desc: "Sell one → tell every OTA to close instantly · receive OTA bookings via webhook (with secret)",
+    chart: `flowchart TB
+  subgraph OUT["us → OTA : sell, then tell every site"]
+    B1["Direct booking / cancel / edit buffer"] --> B2["push availability (minus buffer) + rate"]
+    B2 --> CM1["Channel Manager (Channex)"]
+    CM1 --> OTA1["Booking / Airbnb / Agoda<br/>close when full"]
+  end
+  subgraph IN["OTA → us : receive bookings"]
+    OTA2["Guest books on OTA"] --> CM2["Channex"]
+    CM2 -->|"webhook + secret"| WH["Our system: deduct room<br/>anti-overbooking"]
+    WH --> B2
+  end`,
+  },
+  {
+    id: "flow-automation",
+    step: "Diagram 4",
+    title: "Email + automation (Cron)",
+    desc: "Confirmation email on booking · hourly cron pulls iCal · daily cron sends check-in reminder 1 day ahead",
+    chart: `flowchart TB
+  subgraph CRON["Vercel Cron"]
+    H["Every hour"] --> SY["sync iCal from OTA"]
+    DAY["Daily 10:00"] --> RM["Find guests checking in tomorrow"]
+  end
+  BK["Booking success"] --> CF["Booking confirmation email (Resend)"]
+  RM --> RE["Check-in reminder email"]
+  CF --> G["Guest"]
+  RE --> G
+  SY --> DB[("Central database")]`,
+  },
+  {
+    id: "flow-tenant",
+    step: "Diagram 5",
+    title: "Multi-tenant + Admin",
+    desc: "Each hotel signs up + logs in on its own, data isolated by orgId · admin sees every hotel",
+    chart: `flowchart TB
+  U["Sign up /signup"] --> O["Create Organization<br/>= 1 hotel"]
+  O --> L["Login → session"]
+  L --> SC["Every query bound to orgId<br/>isolates each hotel's data"]
+  SC --> APP["Dashboard / Booking / Settings / Channel Manager"]
+  ADM["Platform owner"] --> AP["/admin<br/>all hotels + MRR revenue"]`,
+  },
+];
+
 export default async function FlowPage() {
   if (!(await isAdmin())) redirect("/login");
+  const lang = await getLang();
+  const en = lang === "en";
+  const DIAGRAMS = en ? DIAGRAMS_EN : DIAGRAMS_TH;
 
   return (
     <main className="container">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
-          <h1 className="page-title">Flowchart ระบบ</h1>
-          <p className="page-sub">5 ภาพเข้าใจทั้งระบบ</p>
+          <h1 className="page-title">{en ? "System flowchart" : "Flowchart ระบบ"}</h1>
+          <p className="page-sub">{en ? "5 diagrams to understand the whole system" : "5 ภาพเข้าใจทั้งระบบ"}</p>
         </div>
-        <Link href="/admin" className="btn btn-ghost" style={{ color: "var(--primary)" }}>← กลับ Admin</Link>
+        <Link href="/admin" className="btn btn-ghost" style={{ color: "var(--primary)" }}>{en ? "← Back to Admin" : "← กลับ Admin"}</Link>
       </div>
 
       <div style={{ display: "grid", gap: 20 }}>

@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
-import { requireUser } from "@/lib/auth";
+import { requireUser, getCurrentUser } from "@/lib/auth";
 import { getPlan, isActiveSubscription } from "@/lib/plans";
 import { rangeDates, todayStr, weekdayShortTH, isWeekend } from "@/lib/dates";
 import { makeT } from "@/lib/i18n";
 import { getLang } from "@/lib/i18n-server";
+import Landing from "./Landing";
 
 export const dynamic = "force-dynamic";
 
@@ -14,9 +15,14 @@ function money(n: number) {
   return new Intl.NumberFormat("th-TH", { maximumFractionDigits: 0 }).format(n);
 }
 
-export default async function DashboardPage() {
+export default async function HomePage() {
+  const lang = await getLang();
+  // ผู้เยี่ยมชมที่ยังไม่ล็อกอิน → หน้า Landing (การตลาด) · ล็อกอินแล้ว → แดชบอร์ด
+  const current = await getCurrentUser();
+  if (!current) return <Landing lang={lang} />;
+
   const user = await requireUser();
-  const t = makeT(await getLang());
+  const t = makeT(lang);
   const org = user.organization;
   const plan = getPlan(org.plan);
   const active = isActiveSubscription(org.planStatus, org.trialEndsAt);

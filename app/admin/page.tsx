@@ -17,7 +17,8 @@ function money(n: number) {
 
 export default async function AdminPage() {
   if (!(await isAdmin())) redirect("/login");
-  const t = makeT(await getLang());
+  const lang = await getLang();
+  const t = makeT(lang);
 
   const orgs = await prisma.organization.findMany({
     orderBy: { createdAt: "desc" },
@@ -63,7 +64,7 @@ export default async function AdminPage() {
           <Link className="btn btn-ghost" href="/admin/flow" style={{ color: "var(--primary)", borderColor: "var(--border)" }}>
             {t("adm.flowchart")}
           </Link>
-          <AdminLogout />
+          <AdminLogout lang={lang} />
         </div>
       </div>
 
@@ -107,7 +108,7 @@ export default async function AdminPage() {
                     <td>{pr.cycle === "yearly" ? t("set.yearly") : t("set.monthly")}</td>
                     <td style={{ fontWeight: 700 }}>฿{money(pr.amount)}</td>
                     <td className="mono">{pr.createdAt.toISOString().slice(0, 16).replace("T", " ")}</td>
-                    <td style={{ textAlign: "right" }}><PaymentReview id={pr.id} /></td>
+                    <td style={{ textAlign: "right" }}><PaymentReview id={pr.id} lang={lang} /></td>
                   </tr>
                 ))}
               </tbody>
@@ -144,7 +145,7 @@ export default async function AdminPage() {
                   <td>{org._count.users}</td>
                   <td className="mono">{org.currentPeriodEnd ? org.currentPeriodEnd.toISOString().slice(0, 10) : "-"}</td>
                   <td className="mono">{org.createdAt.toISOString().slice(0, 10)}</td>
-                  <td><AdminOrgActions id={org.id} name={org.name} plan={org.plan} suspended={org.suspended} /></td>
+                  <td><AdminOrgActions id={org.id} name={org.name} plan={org.plan} suspended={org.suspended} lang={lang} /></td>
                 </tr>
               ))}
             </tbody>

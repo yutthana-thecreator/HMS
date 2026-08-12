@@ -256,6 +256,118 @@ const DICT: Record<string, { th: string; en: string }> = {
   "st.active": { th: "จ่ายเงินแล้ว", en: "Active" },
   "st.past_due": { th: "ค้างชำระ", en: "Past due" },
   "st.canceled": { th: "ยกเลิก", en: "Canceled" },
+
+  // ---- common (shared actions) ----
+  "common.cancel": { th: "ยกเลิก", en: "Cancel" },
+  "common.delete": { th: "ลบ", en: "Delete" },
+  "common.save": { th: "บันทึก", en: "Save" },
+  "common.failed": { th: "ไม่สำเร็จ", en: "Failed" },
+  "common.logout": { th: "ออกจากระบบ", en: "Log out" },
+  "common.loading": { th: "กำลังโหลด...", en: "Loading..." },
+  "common.close": { th: "ปิด", en: "Close" },
+
+  // ---- settings: leftover ----
+  "set.noChannels": { th: "ยังไม่มีช่องทาง — การเชื่อม Airbnb/Booking.com จะเพิ่มในเฟส Channel Integration", en: "No channels yet — Airbnb/Booking.com integration is added in the Channel Integration phase" },
+
+  // ---- PromptPay billing ----
+  "pp.pendingPrefix": { th: "⏳ มีคำขอชำระเงินรอผู้ดูแลยืนยัน — แพ็ก", en: "⏳ Payment request awaiting admin confirmation — plan" },
+  "pp.yearlySave": { th: "รายปี · ลด", en: "Yearly · save" },
+  "pp.perYear": { th: "ปี", en: "yr" },
+  "pp.perMonth": { th: "เดือน", en: "mo" },
+  "pp.save": { th: "ประหยัด", en: "Save" },
+  "pp.perYearFull": { th: "ปี", en: "year" },
+  "pp.freeTrial": { th: "🎁 ทดลองฟรี 14 วัน", en: "🎁 14-day free trial" },
+  "pp.rooms": { th: "ห้อง", en: "rooms" },
+  "pp.properties": { th: "ที่พัก", en: "properties" },
+  "pp.staff": { th: "ผู้ใช้งาน", en: "staff" },
+  "pp.otaRealtime": { th: "เชื่อม OTA เรียลไทม์", en: "Real-time OTA sync" },
+  "pp.icalOnly": { th: "iCal เท่านั้น", en: "iCal only" },
+  "pp.currentPlan": { th: "แพ็กเกจปัจจุบัน", en: "Current plan" },
+  "pp.choose": { th: "เลือกแพ็กเกจนี้", en: "Choose this plan" },
+  "pp.claimedTitle": { th: "แจ้งชำระเงินแล้ว", en: "Payment reported" },
+  "pp.claimedDesc": { th: "รอผู้ดูแลตรวจสอบและยืนยัน — แพ็กเกจจะเปิดใช้งานหลังยืนยัน (จะมีอีเมลแจ้ง)", en: "Awaiting admin review — your plan activates after confirmation (you'll get an email)" },
+  "pp.scanTitle": { th: "สแกนจ่ายด้วย PromptPay", en: "Scan to pay with PromptPay" },
+  "pp.scanHint": { th: "เปิดแอปธนาคาร → สแกน QR → โอนตามยอด → กดปุ่มด้านล่าง", en: "Open your banking app → scan the QR → transfer the amount → tap below" },
+  "pp.iPaid": { th: "ฉันโอนแล้ว", en: "I've paid" },
+  "pp.reporting": { th: "กำลังแจ้ง...", en: "Reporting..." },
+  "pp.qrFail": { th: "สร้าง QR ไม่สำเร็จ", en: "Failed to create QR" },
+  "pp.claimFail": { th: "แจ้งชำระไม่สำเร็จ", en: "Failed to report payment" },
+
+  // ---- Channel Manager wizard ----
+  "cw.notConfigured": { th: "ระบบยังไม่ได้ตั้งค่า Channel Manager — ติดต่อผู้ดูแลระบบ", en: "Channel Manager not configured — contact the admin" },
+  "cw.step1Title": { th: "เชื่อมระบบกับ Channel Manager", en: "Connect to the Channel Manager" },
+  "cw.step1Desc": { th: "กดปุ่มเดียว — ระบบจะสร้างที่พักใน Channel Manager + ส่งห้อง/ราคา + เปิดรับการจองให้อัตโนมัติ", en: "One click — we create your property in the Channel Manager, push rooms/rates, and open for bookings automatically" },
+  "cw.connecting": { th: "กำลังเชื่อม...", en: "Connecting..." },
+  "cw.startConnect": { th: "🚀 เริ่มเชื่อม Channel Manager", en: "🚀 Connect Channel Manager" },
+  "cw.step2Title": { th: "เชื่อม OTA (Booking.com / Airbnb / Agoda)", en: "Connect OTAs (Booking.com / Airbnb / Agoda)" },
+  "cw.step2Desc": { th: "ขั้นนี้ทำใน Channel Manager (เพราะบัญชี OTA เป็นของโรงแรม ต้อง authorize เอง):", en: "Do this in the Channel Manager (OTA accounts belong to the hotel — you authorize them yourself):" },
+  "cw.step2Note": { th: "* ต้องมี listing บน OTA อยู่แล้ว และใช้ Channel Manager แบบ production", en: "* Requires an existing OTA listing and a production Channel Manager" },
+  "cw.step3Title": { th: "พร้อมขาย — sync อัตโนมัติ", en: "Ready to sell — auto sync" },
+  "cw.step3Desc": { th: "จองตรง/ยกเลิก → push ห้องว่าง/ราคาไปทุก OTA อัตโนมัติ · จองจาก OTA → เข้าระบบ + ตัดห้องกัน overbooking", en: "Direct booking/cancel → auto-push availability/rates to all OTAs · OTA booking → into the system + deducts rooms to prevent overbooking" },
+  "cw.pushing": { th: "กำลัง push...", en: "Pushing..." },
+  "cw.pushNow": { th: "🔄 Push ห้องว่าง/ราคาเดี๋ยวนี้", en: "🔄 Push availability/rates now" },
+  "cw.otaBookingHow": { th: "Booking Extranet → Account → Connectivity provider → ค้นหา \"Channex\" → Connect", en: "Booking Extranet → Account → Connectivity provider → search \"Channex\" → Connect" },
+  "cw.otaAirbnbHow": { th: "เพิ่ม Airbnb ใน Channex → Login/Authorize (OAuth) → import listing → map ห้อง", en: "Add Airbnb in Channex → Login/Authorize (OAuth) → import listing → map rooms" },
+  "cw.otaAgodaHow": { th: "Agoda YCS → ขอเปิด XML/Channel Manager → เลือก Channex → map ห้อง", en: "Agoda YCS → request XML/Channel Manager → choose Channex → map rooms" },
+
+  // ---- Email panel ----
+  "ep.desc": { th: "ส่งอีเมลยืนยันการจองให้ลูกค้าอัตโนมัติทันทีที่จองสำเร็จ", en: "Automatically email booking confirmations to guests as soon as they book" },
+  "ep.ready": { th: "· พร้อมใช้งาน ✓", en: "· Ready ✓" },
+  "ep.notSet": { th: "· ยังไม่ได้ตั้งค่า", en: "· Not configured" },
+  "ep.testSent": { th: "✅ ส่งอีเมลทดสอบแล้ว — เช็คกล่องอีเมลของคุณ (รวม Spam)", en: "✅ Test email sent — check your inbox (incl. Spam)" },
+  "ep.sending": { th: "กำลังส่ง...", en: "Sending..." },
+  "ep.sendTest": { th: "ส่งอีเมลทดสอบหาตัวเอง", en: "Send a test email to yourself" },
+  "ep.setupTitle": { th: "ตั้งค่า (ทำครั้งเดียว):", en: "Setup (one-time):" },
+  "ep.step1a": { th: "สมัคร", en: "Sign up at" },
+  "ep.step1b": { th: "(ฟรี 3,000 เมล/เดือน)", en: "(free 3,000 emails/mo)" },
+  "ep.step2": { th: "API Keys → Create → ก๊อป key", en: "API Keys → Create → copy the key" },
+  "ep.step3": { th: "ส่ง key มาให้ผู้ดูแลตั้งใน Vercel แล้วกดปุ่มทดสอบ", en: "Send the key to the admin to set in Vercel, then tap test" },
+
+  // ---- iCal manager ----
+  "im.confirmDel": { th: "ลบลิงก์นี้?", en: "Delete this link?" },
+  "im.syncFail": { th: "sync ล้มเหลว", en: "Sync failed" },
+  "im.pull": { th: "ดึงวันที่ถูกจองจาก Airbnb/Booking เข้าระบบ", en: "Pull booked dates from Airbnb/Booking into the system" },
+  "im.syncing": { th: "กำลัง Sync...", en: "Syncing..." },
+  "im.syncNow": { th: "🔄 Sync ตอนนี้", en: "🔄 Sync now" },
+  "im.channel": { th: "ช่องทาง", en: "Channel" },
+  "im.lastResult": { th: "ผล Sync ล่าสุด", en: "Last sync result" },
+  "im.notSynced": { th: "ยังไม่ sync", en: "Not synced yet" },
+  "im.addTitle": { th: "+ เพิ่มลิงก์ iCal จาก OTA", en: "+ Add iCal link from OTA" },
+  "im.icsLink": { th: "ลิงก์ .ics จาก OTA", en: ".ics link from OTA" },
+  "im.adding": { th: "กำลังเพิ่ม...", en: "Adding..." },
+  "im.addLink": { th: "เพิ่มลิงก์", en: "Add link" },
+  "im.other": { th: "อื่นๆ", en: "Other" },
+  "im.exportTitle": { th: "ลิงก์ Export (ให้ OTA มา subscribe เพื่อเห็นว่าเราจองแล้ว)", en: "Export links (for OTAs to subscribe and see our bookings)" },
+
+  // ---- room type row ----
+  "rt.saved": { th: "บันทึกแล้ว ✓", en: "Saved ✓" },
+  "rt.delFail": { th: "ลบไม่สำเร็จ", en: "Delete failed" },
+
+  // ---- add room type form ----
+  "art.typeName": { th: "ชื่อประเภท", en: "Type name" },
+  "art.code": { th: "รหัส (แก้ได้)", en: "Code (editable)" },
+  "art.units": { th: "จำนวนห้อง", en: "Number of rooms" },
+  "art.price": { th: "ราคา/คืน (บาท)", en: "Price/night (THB)" },
+  "art.limitReached": { th: "ถึงลิมิตแพ็กเกจแล้ว", en: "Plan limit reached" },
+  "art.add": { th: "เพิ่มประเภทห้อง", en: "Add room type" },
+  "art.addTitle": { th: "+ เพิ่มประเภทห้อง", en: "+ Add room type" },
+
+  // ---- admin: payment review ----
+  "pr.confirmReject": { th: "ปฏิเสธคำขอนี้?", en: "Reject this request?" },
+  "pr.confirm": { th: "✓ ยืนยัน", en: "✓ Confirm" },
+  "pr.reject": { th: "ปฏิเสธ", en: "Reject" },
+
+  // ---- admin: org actions ----
+  "aoa.setPlan": { th: "ตั้งแพ็ก", en: "Set plan" },
+  "aoa.extend30": { th: "+30วัน", en: "+30 days" },
+  "aoa.enable": { th: "เปิดใช้", en: "Enable" },
+  "aoa.suspend": { th: "ระงับ", en: "Suspend" },
+  "aoa.delete": { th: "🗑 ลบ", en: "🗑 Delete" },
+  "aoa.confirmSuspend": { th: "ระงับโรงแรมนี้? ผู้ใช้จะเข้าระบบไม่ได้", en: "Suspend this hotel? Users won't be able to log in" },
+
+  // ---- suspended page ----
+  "susp.title": { th: "บัญชีถูกระงับการใช้งาน", en: "Account suspended" },
+  "susp.contact": { th: "กรุณาติดต่อผู้ดูแลระบบเพื่อเปิดใช้งานอีกครั้ง (เช่น ค้างชำระ หรือมีปัญหาบัญชี)", en: "Please contact the admin to reactivate (e.g. overdue payment or account issue)" },
 };
 
 export function makeT(lang: Lang) {
